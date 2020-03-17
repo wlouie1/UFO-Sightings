@@ -1,0 +1,46 @@
+html,body{
+    margin: 0px;
+    padding: 0px;
+}
+
+.viz-container {
+    width: 100%;
+    height: 100vh;
+    background-color: red;
+    transition: opacity 300ms;
+}
+
+.loading-container {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    width: 100%;
+    height: 100vh;
+    /* background-color: blue; */
+    background-color: rgba(0,0,0,0.5);
+    transition: opacity 300ms;
+}
+
+.overlay {
+    position: fixed;
+    width: 100%;
+    height: 100%;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    z-index: 10;
+    cursor: wait;
+}
+
+.hidden {
+    display: none;
+}
+
+.invisible {
+    opacity: 0;
+}
+
+.visible {
+    opacity: 1;
+}

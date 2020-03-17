@@ -3,12 +3,33 @@
 <head>
     <meta charset="UTF-8">
     <title>UFO Sightings</title>
+    <link rel="apple-touch-icon" sizes="180x180" href="resources/images/apple-touch-icon.png">
+    <link rel="icon" type="image/png" sizes="32x32" href="resources/images/favicon-32x32.png">
+    <link rel="icon" type="image/png" sizes="16x16" href="resources/images/favicon-16x16.png">
+    <link rel="manifest" href="resources/images/site.webmanifest">
     <script src="https://d3js.org/d3.v5.min.js"></script>
     <link href="resources/css/app.css" type="text/css" rel="stylesheet">
     <script src="resources/js/app.js"></script>
 </head>
 <body>
-    <h1>Heading Test</h1>
-    <p id='para'>Paragraph Test</p>
+    <div class="viz-container invisible">
+        <div class="header" style="display:inline-block;">
+            <h1>UFO Sightings</h1>
+        </div>
+        <div class="map-container">
+            <div class="map"></div>
+            <div class="details"></div>
+        </div>
+        <div class="timeline-container">
+            <div class="overview"></div>
+            <div class="player-controls"></div>
+        </div>
+        <div class="heatmaps"></div>
+    </div>
+    <div class="loading-container overlay visible">
+        <div class="loading-indicator">
+            <h1>LOADING...</h1>
+        </div>
+    </div>
 </body>
 </html>
