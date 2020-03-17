@@ -1,13 +1,18 @@
 html,body{
-    margin: 0px;
-    padding: 0px;
+    margin: 0;
+    padding: 0;
 }
 
-.viz-container {
-    width: 100%;
-    height: 100vh;
-    background-color: red;
-    transition: opacity 300ms;
+.hidden {
+    display: none;
+}
+
+.invisible {
+    opacity: 0;
+}
+
+.visible {
+    opacity: 1;
 }
 
 .loading-container {
@@ -33,14 +38,35 @@ html,body{
     cursor: wait;
 }
 
-.hidden {
-    display: none;
+.viz-container {
+    display: flex;
+    flex-direction: column;
+    flex-wrap: nowrap;
+    justify-content: space-between;
+    align-items: center;
+    width: 100%;
+    height: 100vh;
+    background-color: #1e1e1e;
+    transition: opacity 300ms;
 }
 
-.invisible {
-    opacity: 0;
+.header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    flex: 0 0 auto;
+    width: 100%;
+    background-color: red;
 }
 
-.visible {
-    opacity: 1;
+.map-container {
+    flex: 1 1 auto;
+    width: 100%;
+    background-color: yellow;
+}
+
+.controls-container {
+    flex: 0 0 auto;
+    width: 100%;
+    background-color: green;
 }
