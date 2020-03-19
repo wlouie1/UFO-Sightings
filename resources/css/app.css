@@ -1,6 +1,8 @@
 html,body{
     margin: 0;
     padding: 0;
+    font-family: Inconsolata;
+    overflow: hidden;
 }
 
 .hidden {
@@ -13,6 +15,50 @@ html,body{
 
 .visible {
     opacity: 1;
+}
+
+.tooltip-launcher {
+    position: relative;
+}
+
+.tooltip {
+    color: #E5E5E5;
+    text-align: center;
+    position: absolute;
+    z-index: 2000;
+    bottom: 100%;
+    left: 0px;
+    /* left: 500px; */
+}
+
+.tooltip.invisible {
+    left: -1000px;
+}
+
+.tooltip-content-container {
+    position: relative;
+}
+
+.seek-tooltip .tooltip-content-container {
+    background-color: #2c5967;
+}
+
+.tooltip-content {
+    padding: 0.5em;
+}
+
+.tooltip-arrow {
+    position: relative;
+    top: 100%;
+    width: 0;
+    height: 0;
+    border-left: 8px solid transparent;
+    border-right: 8px solid transparent;
+    border-top: 8px solid;
+}
+
+.seek-tooltip .tooltip-arrow {
+    border-top: 8px solid #2c5967;
 }
 
 .loading-container {
@@ -50,23 +96,56 @@ html,body{
     transition: opacity 300ms;
 }
 
-.header {
+/* .header {
     display: flex;
     justify-content: space-between;
     align-items: center;
     flex: 0 0 auto;
     width: 100%;
-    background-color: red;
-}
+    background-color: #1e1e1e;
+} */
 
 .map-container {
     flex: 1 1 auto;
     width: 100%;
-    background-color: yellow;
+    height: 100%;
+    /* background-color: #070707; */
 }
 
-.controls-container {
+.map {
+    width: 100%;
+    height: 100%;
+    background-color: #262626;
+}
+
+/* .controls-container {
     flex: 0 0 auto;
     width: 100%;
-    background-color: green;
+    background-color: #1e1e1e;
+} */
+
+.timeline-container {
+    flex: 0 0 auto;
+    width: 100%;
+    height: 5em;
+    background-color: #141414;
+}
+
+.timeline-chart-line {
+    fill: #03b6ae;
+    stroke: #03b6ae;
+    stroke-width: 1px;
+}
+
+.timeline-chart-axis {
+    color: #E5E5E5;
+}
+
+.timeline-chart-glasspane {
+    opacity: 0;
+}
+
+.timeline-chart-seekline {
+    stroke: #E5E5E5;
+    pointer-events: none;
 }

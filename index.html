@@ -7,28 +7,46 @@
     <link rel="icon" type="image/png" sizes="32x32" href="resources/images/favicon-32x32.png">
     <link rel="icon" type="image/png" sizes="16x16" href="resources/images/favicon-16x16.png">
     <link rel="manifest" href="resources/images/site.webmanifest">
+    <link href='https://fonts.googleapis.com/css?family=Inconsolata' rel='stylesheet'>
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.6.0/dist/leaflet.css"
+        integrity="sha512-xwE/Az9zrjBIphAcBb3F6JVqxf46+CDLwfLMHloNu6KEQCAWi6HcDUbeOfBIptF7tcCzusKFjFw2yuvEpDL9wQ=="
+        crossorigin=""/>
+    <script src="https://unpkg.com/leaflet@1.6.0/dist/leaflet.js"
+        integrity="sha512-gZwIG9x3wUXg2hdXF6+rVkLF/0Vi9U8D2Ntg4Ga5I5BZpVkVxlJWbSQtXPSiUTtC0TjtGOmxa1AJPuV0CPthew=="
+        crossorigin=""></script>
     <script src="https://d3js.org/d3.v5.min.js"></script>
     <link href="resources/css/app.css" type="text/css" rel="stylesheet">
     <script src="resources/js/app.js"></script>
 </head>
 <body>
     <div class="viz-container invisible">
-        <div class="header">
+        <!-- <div class="header">
             <h1>UFO Sightings</h1>
             <div>asdf</div>
-        </div>
+        </div> -->
         <div class="map-container">
-            <div class="map"></div>
+            <div id="map" class="map"></div>
             <div class="details"></div>
         </div>
-        <div class="controls-container">
+        <div class="timeline-container tooltip-launcher">
+            <div class="seek-tooltip tooltip invisible">
+                <div class="tooltip-content-container">
+                    <div class="tooltip-content">
+                        <div class="seek-tooltip-l1"></div>
+                        <div class="seek-tooltip-l2"></div>
+                    </div>
+                </div>
+                <div class="tooltip-arrow"></div>
+            </div>
+        </div>
+        <!-- <div class="controls-container">
             <h1>CONTROLS</h1>
             <div class="timeline-container">
                 <div class="overview"></div>
                 <div class="player-controls"></div>
             </div>
             <div class="heatmaps"></div>
-        </div>
+        </div> -->
     </div>
     <div class="loading-container overlay visible">
         <div class="loading-indicator">

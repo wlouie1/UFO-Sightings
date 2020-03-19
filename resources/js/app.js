@@ -1,12 +1,50 @@
+'use strict';
+
 const DATA_PATH = 'resources/data/ufo_sightings.csv';
 const MIN_LOADING_MS = 1000;
 
 // ========== Data Utilities ==========
 
 function loadData() {
-    return d3.csv(DATA_PATH);
+    return d3.csv(DATA_PATH, function(d) {
+        d.datetime = new Date(d.datetime);
+        d.duration_seconds = parseFloat(d.duration_seconds);
+        d.latitude = parseFloat(d.latitude);
+        d.longitude = parseFloat(d.longitude);
+        d.date_documented = new Date(d.date_documented);
+        return d;
+    });
 }
 
+
+function groupByDay(data) {
+    let dayMap = {};
+    let days = [];
+
+    for (let i = 0; i < data.length; i++) {
+        let day = new Date(data[i].datetime.toDateString());
+        if (dayMap[day] != null) {
+            dayMap[day].reports.push(data[i]);
+        } else {
+            dayMap[day] = { day: day, reports: [ data[i] ] };
+            days.push(day);
+        }
+    }
+
+    let groupedData = days.map(function(day) {
+        return dayMap[day];
+    });
+
+    return { data: groupedData, map: dayMap };
+}
+
+
+function getReports(day, dayMap) {
+    if (dayMap[day] == null) {
+        return [];
+    }
+    return dayMap[day].reports;
+}
 
 // ========== Render Utilities ==========
 
@@ -47,16 +85,147 @@ function removeLoading() {
 }
 
 
+function getMapInstance() {
+    return document.querySelector('#map')._leaflet_map;
+}
+
+
 function renderMap(data) {
-    return new Promise(function(resolve, _) {
-        setTimeout(resolve, 2000);
+    var whenReadyResolve;
+    let whenReadyPromise = new Promise(function(resolve, _) {
+        whenReadyResolve = resolve;
+    });
+
+    let map = L.map('map', {
+        zoomControl: false,
+        maxBounds: [[-90,-180], [90, 180]],
+        maxBoundsViscosity: 1.0,
+        zoomSnap: 0.1
+    }).on('load', whenReadyResolve)
+
+    document.querySelector('#map')._leaflet_map = map;
+    
+    let urlTemplate = 'https://{s}.basemaps.cartocdn.com/dark_nolabels/{z}/{x}/{y}{r}.png';
+    let options = {
+        attribution: '&copy; ' + 
+                    '<a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>' +
+                    ' contributors &copy; ' +
+                    '<a href="https://carto.com/attributions">CARTO</a>',
+        subdomains: 'abcd',
+        maxZoom: 19,
+        noWrap: true,
+        bounds: [[-90,-180], [90,180]]
+    };
+
+    let CartoDB_DarkMatterNoLabels = L.tileLayer(urlTemplate, options);
+    CartoDB_DarkMatterNoLabels.addTo(map);
+
+    map.setView([24, 0], 2.8);
+    // map.setView([0, 0], 2);
+    
+    return whenReadyPromise;
+}
+
+
+function renderTimeline(dayGroup) {
+    let dayData = dayGroup.data;
+    let dayMap = dayGroup.map;
+
+    let container = document.querySelector('.timeline-container');
+    let containerWidth = container.clientWidth;
+    let containerHeight = container.clientHeight;
+
+    let xScale = d3.scaleTime()
+        .domain(d3.extent(dayData, d => d.day))
+        .range([0, containerWidth]);
+
+    let yScale = d3.scaleLinear()
+        .domain([0, d3.max(dayData, d => d.reports.length)])
+        .range([containerHeight, 0]);
+    
+    let svg = d3.select(container)
+        .append('svg')
+        .attr('width', containerWidth)
+        .attr('height', containerHeight);
+
+    let chartG = svg.append('g');
+
+    let line = d3.line()
+        .x(d => xScale(d.day))
+        .y(d => yScale(d.reports.length));
+    
+    chartG.append('path')
+        .attr('class', 'timeline-chart-line')
+        .attr('d', line(dayData));
+
+    let timeAxisG = chartG.append('g');
+
+    let timeAxis = d3.axisBottom(xScale).ticks(10);
+    timeAxisG.attr('class', 'timeline-chart-axis')
+        .call(timeAxis);
+
+    let glassPane = svg.append("rect")
+        .attr('x', 0)
+        .attr('y', 0)
+        .attr('width', containerWidth)
+        .attr('height', containerHeight)
+        .attr('class', 'timeline-chart-glasspane');
+    
+    let verticalSeekLine = svg.append('line')
+        .attr('x1', 0)
+        .attr('y1', 0)
+        .attr('x2', 0)
+        .attr('y2', containerHeight)
+        .attr('class', 'timeline-chart-seekline invisible');
+
+    let seekTooltip = document.querySelector('.seek-tooltip');
+    let seekTooltipContent = document.querySelector('.seek-tooltip .tooltip-content-container');
+    let seekTooltipArrow = document.querySelector('.seek-tooltip .tooltip-arrow');
+    let seekTooltipl1 = document.querySelector('.seek-tooltip-l1');
+    let seekTooltipl2 = document.querySelector('.seek-tooltip-l2');
+
+    glassPane.on('mouseenter', function() {
+        verticalSeekLine.attr('class', 'timeline-chart-seekline visible');
+        seekTooltip.classList.remove('invisible');
+        seekTooltip.classList.add('visible');
+    }).on('mousemove', function() {
+        var xPos = d3.mouse(this)[0];
+        // console.log(d3.mouse(this))
+        // console.log(xScale.invert(xPos));
+        verticalSeekLine.attr("x1", xPos)
+            .attr('x2', xPos);
+
+        let dayString = xScale.invert(xPos).toDateString();
+        seekTooltipl1.innerHTML = dayString;
+        seekTooltipl2.innerHTML = getReports(new Date(dayString), dayMap).length + ' Reports';
+
+        let tooltipHalfWidth = seekTooltipContent.clientWidth / 2;
+        if (xPos < tooltipHalfWidth) {
+            seekTooltipContent.style.left = '0px';
+        } else if (xPos > containerWidth - tooltipHalfWidth) {
+            seekTooltipContent.style.left = (containerWidth - seekTooltipContent.clientWidth) + 'px'
+        } else {
+            seekTooltipContent.style.left = (xPos - tooltipHalfWidth) + 'px';
+        }
+        seekTooltipArrow.style.left = (xPos - 8) + 'px';
+    }).on('mouseleave', function() {
+        verticalSeekLine.attr('class', 'timeline-chart-seekline invisible');
+        seekTooltip.classList.remove('visible');
+        seekTooltip.classList.add('invisible');
     });
 }
 
 
+// function renderControls(data) {
+//     return renderTimeline(data);
+// }
+
+
 function renderViz(data) {
+    let dayGroup = groupByDay(data);
     return Promise.all([
-        renderMap(data)
+        renderMap(data),
+        renderTimeline(dayGroup)
     ]);
 }
 
@@ -70,7 +239,6 @@ function showViz() {
     let vizContainer = getVizContainerElem();
     vizContainer.addEventListener('transitionend', whenReadyResolve);
 
-    // vizContainer.classList.remove('hidden');
     vizContainer.classList.remove('invisible');
     vizContainer.classList.add('visible');
 
@@ -79,8 +247,12 @@ function showViz() {
 
 
 async function render() {
-    // Show loading screen, and fetch the data
+    // In parallel:
+    // Show loading screen, fetch the data and make sure it's date sorted
     let [_, data] = await Promise.all([renderLoading(), loadData()]);
+    data.sort(function(a, b) {
+        return a.datetime - b.datetime;
+    });
 
     // Render visualization behind the loading screen
     _ = await renderViz(data);
