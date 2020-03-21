@@ -146,6 +146,12 @@ html,body{
 }
 
 .timeline-chart-seekline {
-    stroke: #E5E5E5;
+    stroke: yellow;
+    pointer-events: none;
+}
+
+.timeline-chart-seekrange {
+    fill: #E5E5E5;
+    opacity: 0.2;
     pointer-events: none;
 }

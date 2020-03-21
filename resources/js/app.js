@@ -91,6 +91,10 @@ DataManager.prototype.getYearData = function() {
     return this._yearData;
 };
 
+DataManager.prototype.getYearMap = function() {
+    return this._yearMap;
+};
+
 DataManager.prototype.getReports = function(dateComponent, dateCompMap) {
     if (dateCompMap[dateComponent] == null) {
         return [];
@@ -186,12 +190,12 @@ MapRenderer.prototype.render = function(container) {
 
 function TimelineRenderer(dataManager) {
     this._dataManager = dataManager;
-    this._daysPerSecond = 365 * 2;
+    this._intervalsPerSecond = 12;
 
     let data = this._dataManager.getData();
     this._startDate = this._getSnapToInterval(data[0].datetime, 'ceil');
     this._endDate = this._getSnapToInterval(data[data.length - 1].datetime, 'floor');
-    this._timeInterval = 1000 * 60 * 60 * 24; // day
+    this._timeInterval = 1000 * 60 * 60 * 24 * 30; // month
     this._currentDate = this._startDate;
 }
 
@@ -241,17 +245,23 @@ TimelineRenderer.prototype._renderPlayer = function(container) {
 
 TimelineRenderer.prototype._renderTooltip = function(date) {
     let xPos = this._xScale(date);
-    let dayString = date.toDateString();
-    let dayMap = this._dataManager.getDayMap();
+
+    let year = date.getFullYear();
+    let yearMap = this._dataManager.getYearMap();
     let containerWidth = this._container.clientWidth;
 
     let seekTooltip = document.querySelector('.seek-tooltip');
+    if (seekTooltip.classList.contains('invisible')) {
+        seekTooltip.classList.remove('invisible');
+        seekTooltip.classList.add('visible');
+    }
+
     let seekTooltipContent = document.querySelector('.seek-tooltip .tooltip-content-container');
     let seekTooltipArrow = document.querySelector('.seek-tooltip .tooltip-arrow');
     let seekTooltipl1 = document.querySelector('.seek-tooltip-l1');
     let seekTooltipl2 = document.querySelector('.seek-tooltip-l2');
-    seekTooltipl1.innerHTML = dayString;
-    seekTooltipl2.innerHTML = this._dataManager.getReports(new Date(dayString), dayMap).length + ' Reports';
+    seekTooltipl1.innerHTML = 'Year: ' + year;
+    seekTooltipl2.innerHTML = 'Reports: ' + this._dataManager.getReports(new Date(year, 0), yearMap).length;
 
     let tooltipHalfWidth = seekTooltipContent.clientWidth / 2;
     if (xPos < tooltipHalfWidth) {
@@ -265,6 +275,16 @@ TimelineRenderer.prototype._renderTooltip = function(date) {
 };
 
 TimelineRenderer.prototype._renderTimeIndicator = function(date) {
+    if (!this._rangeSeekIndicator) {
+        let containerHeight = this._container.clientHeight;
+
+        this._rangeSeekIndicator = this._svg.append('rect')
+            .attr('x', 0)
+            .attr('y', 0)
+            .attr('width', this._xScale(new Date('Dec 31, 2000')) - this._xScale(new Date('Jan 01, 2000')))
+            .attr('height', containerHeight)
+            .attr('class', 'timeline-chart-seekrange');
+    }
     if (!this._verticalSeekLine) {
         let containerHeight = this._container.clientHeight;
         
@@ -275,6 +295,9 @@ TimelineRenderer.prototype._renderTimeIndicator = function(date) {
             .attr('y2', containerHeight)
             .attr('class', 'timeline-chart-seekline');
     }
+
+    let xYearPos = this._xScale(new Date('Jan 01,' + date.getFullYear()));
+    this._rangeSeekIndicator.attr('x', xYearPos);
 
     let xPos = this._xScale(date);
     this._verticalSeekLine.attr("x1", xPos)
@@ -316,7 +339,7 @@ TimelineRenderer.prototype.play = function() {
         if (clipped) {
             self.stop();
         }
-    }, 1000 / this._daysPerSecond);
+    }, 1000 / this._intervalsPerSecond);
 };
 
 TimelineRenderer.prototype.stop = function() {
