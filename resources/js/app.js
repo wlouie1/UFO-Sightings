@@ -27,12 +27,75 @@ DataManager.prototype._loadData = function() {
     });
 };
 
+DataManager.prototype._groupBy = function(dateComponent) {
+    let dMap = {};
+    let ds = [];
+
+    for (let i = 0; i < this._data.length; i++) {
+        let month = this._data[i].datetime.getMonth();
+        let day = this._data[i].datetime.getDate();
+        let year = this._data[i].datetime.getFullYear();
+
+        let d;
+        switch (dateComponent) {
+            case 'year':
+                d = new Date(year, 0);
+                break;
+            case 'day':
+                d = new Date(year, month, day);
+                break;
+        }
+        // let d = new Date(this._data[i].datetime.toDateString());
+        if (dMap[d] != null) {
+            dMap[d].reports.push(this._data[i]);
+        } else {
+            dMap[d] = { date: d, reports: [ this._data[i] ] };
+            ds.push(d);
+        }
+    }
+
+    let groupedData = ds.map(function(d) {
+        return dMap[d];
+    });
+
+    return { data: groupedData, map: dMap };
+};
+
 DataManager.prototype.loadAndProcessData = function () {
-    return this._loadData();
+    let self = this;
+
+    return this._loadData().then(function() {
+        let dayGroup = self._groupBy('day');
+        self._dayData = dayGroup.data;
+        self._dayMap = dayGroup.map;
+
+        let yearGroup = self._groupBy('year');
+        self._yearData = yearGroup.data;
+        self._yearMap = yearGroup.map;
+    });
 };
 
 DataManager.prototype.getData = function() {
     return this._data;
+};
+
+DataManager.prototype.getDayData = function() {
+    return this._dayData;
+};
+
+DataManager.prototype.getDayMap = function() {
+    return this._dayMap;
+};
+
+DataManager.prototype.getYearData = function() {
+    return this._yearData;
+};
+
+DataManager.prototype.getReports = function(dateComponent, dateCompMap) {
+    if (dateCompMap[dateComponent] == null) {
+        return [];
+    }
+    return dateCompMap[dateComponent].reports;
 };
 
 
@@ -123,11 +186,154 @@ MapRenderer.prototype.render = function(container) {
 
 function TimelineRenderer(dataManager) {
     this._dataManager = dataManager;
+    this._daysPerSecond = 365 * 2;
+
+    let data = this._dataManager.getData();
+    this._startDate = this._getSnapToInterval(data[0].datetime, 'ceil');
+    this._endDate = this._getSnapToInterval(data[data.length - 1].datetime, 'floor');
+    this._timeInterval = 1000 * 60 * 60 * 24; // day
+    this._currentDate = this._startDate;
 }
 
+TimelineRenderer.prototype._renderChart = function(container) {
+    this._container = container;
+
+    let dayData = this._dataManager.getDayData();
+    // let dayMap = this._dataManager.getDayMap();
+
+    let containerWidth = container.clientWidth;
+    let containerHeight = container.clientHeight;
+
+    this._xScale = d3.scaleTime()
+        .domain(d3.extent(dayData, d => d.date))
+        .range([0, containerWidth])
+        .clamp(true);
+
+    this._yScale = d3.scaleLinear()
+        .domain([0, d3.max(dayData, d => d.reports.length)])
+        .range([containerHeight, 0]);
+    
+    this._svg = d3.select(container)
+        .append('svg')
+        .attr('width', containerWidth)
+        .attr('height', containerHeight);
+
+    let chartG = this._svg.append('g');
+
+    let line = d3.line()
+        .x(d => this._xScale(d.date))
+        .y(d => this._yScale(d.reports.length));
+    
+    chartG.append('path')
+        .attr('class', 'timeline-chart-line')
+        .attr('d', line(dayData));
+
+    let timeAxisG = chartG.append('g');
+
+    let timeAxis = d3.axisBottom(this._xScale).ticks(10);
+    timeAxisG.attr('class', 'timeline-chart-axis')
+        .call(timeAxis);
+};
+
+TimelineRenderer.prototype._renderPlayer = function(container) {
+
+};
+
+TimelineRenderer.prototype._renderTooltip = function(date) {
+    let xPos = this._xScale(date);
+    let dayString = date.toDateString();
+    let dayMap = this._dataManager.getDayMap();
+    let containerWidth = this._container.clientWidth;
+
+    let seekTooltip = document.querySelector('.seek-tooltip');
+    let seekTooltipContent = document.querySelector('.seek-tooltip .tooltip-content-container');
+    let seekTooltipArrow = document.querySelector('.seek-tooltip .tooltip-arrow');
+    let seekTooltipl1 = document.querySelector('.seek-tooltip-l1');
+    let seekTooltipl2 = document.querySelector('.seek-tooltip-l2');
+    seekTooltipl1.innerHTML = dayString;
+    seekTooltipl2.innerHTML = this._dataManager.getReports(new Date(dayString), dayMap).length + ' Reports';
+
+    let tooltipHalfWidth = seekTooltipContent.clientWidth / 2;
+    if (xPos < tooltipHalfWidth) {
+        seekTooltipContent.style.left = '0px';
+    } else if (xPos > containerWidth - tooltipHalfWidth) {
+        seekTooltipContent.style.left = (containerWidth - seekTooltipContent.clientWidth) + 'px'
+    } else {
+        seekTooltipContent.style.left = (xPos - tooltipHalfWidth) + 'px';
+    }
+    seekTooltipArrow.style.left = (xPos - 8) + 'px';
+};
+
+TimelineRenderer.prototype._renderTimeIndicator = function(date) {
+    if (!this._verticalSeekLine) {
+        let containerHeight = this._container.clientHeight;
+        
+        this._verticalSeekLine = this._svg.append('line')
+            .attr('x1', 0)
+            .attr('y1', 0)
+            .attr('x2', 0)
+            .attr('y2', containerHeight)
+            .attr('class', 'timeline-chart-seekline');
+    }
+
+    let xPos = this._xScale(date);
+    this._verticalSeekLine.attr("x1", xPos)
+        .attr('x2', xPos);
+
+    this._renderTooltip(date);
+};
+
+TimelineRenderer.prototype._getSnapToInterval = function(date, direction) {
+    let dayStartTime = new Date(date.toDateString()).getTime();
+    if (direction === 'floor' || date.getTime() === dayStartTime) {
+        return new Date(dayStartTime);
+    }
+    return new Date(dayStartTime + this._timeInterval);
+}
+
+TimelineRenderer.prototype._setCurrentDate = function(date) {
+    let clipped = false;
+    if (date.getTime() < this._startDate.getTime()) {
+        this._currentDate = this._startDate;
+        clipped = true;
+    } else if (date.getTime() > this._endDate.getTime()) {
+        this._currentDate = this._endDate;
+        clipped = true;
+    } else {
+        this._currentDate = this._getSnapToInterval(date, 'ceil');
+    }
+
+    this._renderTimeIndicator(this._currentDate);
+
+    return clipped;
+};
+
+TimelineRenderer.prototype.play = function() {
+    let self = this;
+
+    this._playInterval = setInterval(function() {
+        let clipped = self._setCurrentDate(new Date(self._currentDate.getTime() + self._timeInterval));
+        if (clipped) {
+            self.stop();
+        }
+    }, 1000 / this._daysPerSecond);
+};
+
+TimelineRenderer.prototype.stop = function() {
+    if (this._playInterval != null) {
+        clearInterval(this._playInterval);
+    }
+    this._playInterval = null;
+};
+
 TimelineRenderer.prototype.render = function(container) {
+    this._renderChart(container);
+    this._renderPlayer(container);
+
     return Promise.resolve();
 };
+
+// HANDLE WINDOW RESIZE
 
 // ==================================================
 
@@ -165,6 +371,10 @@ VisualizationManager.prototype.show = function() {
     });
 };
 
+VisualizationManager.prototype.play = function() {
+    this._timelineRenderer.play();
+}
+
 // ==================================================
 
 async function render() {
@@ -181,7 +391,7 @@ async function render() {
     // Render visualization behind loading screen
     let vizContainer = document.querySelector('.viz-container');
     let mapContainer = document.querySelector('#map');
-    let timelineContainer = document.querySelector('timeline-container');
+    let timelineContainer = document.querySelector('.timeline-container');
     let vizManager = new VisualizationManager(dataManager);
     await vizManager.render(vizContainer, mapContainer, timelineContainer);
 
@@ -190,7 +400,7 @@ async function render() {
     await vizManager.show();
 
     // Start playing the map through time
-    console.log(dataManager.getData());
+    vizManager.play();
 }
 
 
