@@ -28,6 +28,7 @@ html,body{
     z-index: 2000;
     bottom: 100%;
     left: 0px;
+    pointer-events: none;
     /* left: 500px; */
 }
 
@@ -40,6 +41,7 @@ html,body{
 }
 
 .seek-tooltip .tooltip-content-container {
+    /* background-color: #0c7d9d; */
     background-color: #2c5967;
 }
 
@@ -58,6 +60,7 @@ html,body{
 }
 
 .seek-tooltip .tooltip-arrow {
+    /* border-top: 8px solid #0c7d9d; */
     border-top: 8px solid #2c5967;
 }
 
@@ -146,12 +149,38 @@ html,body{
 }
 
 .timeline-chart-seekline {
-    stroke: yellow;
+    /* stroke: #d7ba7d; */
+    stroke: #FA8072;
     pointer-events: none;
 }
 
 .timeline-chart-seekrange {
-    fill: #E5E5E5;
-    opacity: 0.2;
+    fill: #d4d4d4;
+    opacity: 0.15;
     pointer-events: none;
 }
+
+.timeline-control-btn {
+    position: absolute;
+    bottom: 150%;
+    z-index: 1500;
+    background-color: #587c0c;
+    border: none;
+    color: white;
+    padding: 10px 16px;
+    font-size: 2em;
+    left: calc(50% - (2em + 16px) / 2);
+    cursor: pointer;
+}
+
+.timeline-control-btn:hover {
+    /* background-color: #b5cea8; */
+    opacity: 0.8;
+}
+
+.timeline-control-btn:focus {
+    /* TODO: keyboard accessibility... */
+    outline: none;
+}
+
+/* gray: #d4d4d4 */

@@ -102,6 +102,16 @@ DataManager.prototype.getReports = function(dateComponent, dateCompMap) {
     return dateCompMap[dateComponent].reports;
 };
 
+DataManager.prototype.getReportsInRange = function(startDate, endDate) {
+    let startTime = startDate.getTime();
+    let endTime = endDate.getTime();
+
+    return this._data.filter(function(d) {
+        let time = d.datetime.getTime();
+        return time > startTime && time < endTime;
+    });
+};
+
 
 // ========== Render Utilities ==========
 
@@ -160,8 +170,11 @@ MapRenderer.prototype.render = function(container) {
         zoomControl: false,
         maxBounds: [[-90,-180], [90, 180]],
         maxBoundsViscosity: 1.0,
-        zoomSnap: 0.1
-    }).on('load', whenReadyResolve)
+        zoomSnap: 0.1,
+        attributionControl: false
+    }).on('load', whenReadyResolve);
+
+    L.control.attribution({position: 'topright'}).addTo(map);
     
     let urlTemplate = 'https://{s}.basemaps.cartocdn.com/dark_nolabels/{z}/{x}/{y}{r}.png';
     let options = {
@@ -182,15 +195,36 @@ MapRenderer.prototype.render = function(container) {
     // map.setView([0, 0], 2);
 
     this._map = map;
+    this._reportsLayer = L.layerGroup().addTo(map);
 
     return whenReadyPromise;
+};
+
+MapRenderer.prototype.handleCurrentDateChange = function(event) {
+    let self = this;
+    // let startDate = this._dataManager.getData()[0].datetime;
+    let startDate = event.detail.previousValue;
+    let endDate = event.detail.value;
+    let reports = this._dataManager.getReportsInRange(startDate, endDate);
+
+    // this._reportsLayer.clearLayers();
+    reports.forEach(function(report) {
+        let marker = L.circleMarker([report.latitude, report.longitude], {
+            radius: 1,
+            stroke: false,
+            fill: true,
+            fillColor: '#d7ba7d',
+            fillOpacity: 0.1
+        });
+        marker.addTo(self._reportsLayer);
+    });
 };
 
 // ==================================================
 
 function TimelineRenderer(dataManager) {
     this._dataManager = dataManager;
-    this._intervalsPerSecond = 12;
+    this._intervalsPerSecond = 24;
 
     let data = this._dataManager.getData();
     this._startDate = this._getSnapToInterval(data[0].datetime, 'ceil');
@@ -200,6 +234,12 @@ function TimelineRenderer(dataManager) {
 }
 
 TimelineRenderer.prototype._renderChart = function(container) {
+    if (this._container == container) {
+        this._svg.remove();
+        this._verticalSeekLine = null;
+        this._rangeSeekIndicator = null;
+    }
+
     this._container = container;
 
     let dayData = this._dataManager.getDayData();
@@ -239,8 +279,19 @@ TimelineRenderer.prototype._renderChart = function(container) {
         .call(timeAxis);
 };
 
-TimelineRenderer.prototype._renderPlayer = function(container) {
+TimelineRenderer.prototype._renderPlayer = function() {
+    let self = this;
 
+    this._controlBtn = this._container.querySelector('.timeline-control-btn');
+    this._controlBtnIcon = this._container.querySelector('.timeline-control-icon');
+
+    this._controlBtn.addEventListener('click', function() {
+        if (self._playInterval) {
+            self.stop();
+        } else {
+            self.play();
+        }
+    });
 };
 
 TimelineRenderer.prototype._renderTooltip = function(date) {
@@ -250,18 +301,19 @@ TimelineRenderer.prototype._renderTooltip = function(date) {
     let yearMap = this._dataManager.getYearMap();
     let containerWidth = this._container.clientWidth;
 
-    let seekTooltip = document.querySelector('.seek-tooltip');
+    let seekTooltip = this._container.querySelector('.seek-tooltip');
     if (seekTooltip.classList.contains('invisible')) {
         seekTooltip.classList.remove('invisible');
         seekTooltip.classList.add('visible');
     }
 
-    let seekTooltipContent = document.querySelector('.seek-tooltip .tooltip-content-container');
-    let seekTooltipArrow = document.querySelector('.seek-tooltip .tooltip-arrow');
-    let seekTooltipl1 = document.querySelector('.seek-tooltip-l1');
-    let seekTooltipl2 = document.querySelector('.seek-tooltip-l2');
+    let seekTooltipContent = this._container.querySelector('.seek-tooltip .tooltip-content-container');
+    let seekTooltipArrow = this._container.querySelector('.seek-tooltip .tooltip-arrow');
+    let seekTooltipl1 = this._container.querySelector('.seek-tooltip-l1');
+    let seekTooltipl2 = this._container.querySelector('.seek-tooltip-l2');
     seekTooltipl1.innerHTML = 'Year: ' + year;
     seekTooltipl2.innerHTML = 'Reports: ' + this._dataManager.getReports(new Date(year, 0), yearMap).length;
+    // CUMULATIVE REPORTS?
 
     let tooltipHalfWidth = seekTooltipContent.clientWidth / 2;
     if (xPos < tooltipHalfWidth) {
@@ -315,7 +367,10 @@ TimelineRenderer.prototype._getSnapToInterval = function(date, direction) {
 }
 
 TimelineRenderer.prototype._setCurrentDate = function(date) {
+    let self = this;
+    let prevDate = this._currentDate;
     let clipped = false;
+
     if (date.getTime() < this._startDate.getTime()) {
         this._currentDate = this._startDate;
         clipped = true;
@@ -326,13 +381,34 @@ TimelineRenderer.prototype._setCurrentDate = function(date) {
         this._currentDate = this._getSnapToInterval(date, 'ceil');
     }
 
+    if (prevDate == this._currentDate) {
+        return clipped;
+    }
+
     this._renderTimeIndicator(this._currentDate);
+
+    let currentDateChangeEvent = new CustomEvent("currentDateChange", {
+        bubbles: true,
+        detail: {
+            previousValue: prevDate,
+            value: self._currentDate
+        }
+    });
+
+    this._container.dispatchEvent(currentDateChangeEvent);
 
     return clipped;
 };
 
 TimelineRenderer.prototype.play = function() {
     let self = this;
+
+    this._controlBtnIcon.classList.remove('fa-play');
+    this._controlBtnIcon.classList.add('fa-pause');
+
+    if (this._currentDate.getTime() == this._endDate.getTime()) {
+        this._currentDate = this._startDate;
+    }
 
     this._playInterval = setInterval(function() {
         let clipped = self._setCurrentDate(new Date(self._currentDate.getTime() + self._timeInterval));
@@ -343,6 +419,9 @@ TimelineRenderer.prototype.play = function() {
 };
 
 TimelineRenderer.prototype.stop = function() {
+    this._controlBtnIcon.classList.remove('fa-pause');
+    this._controlBtnIcon.classList.add('fa-play');
+
     if (this._playInterval != null) {
         clearInterval(this._playInterval);
     }
@@ -350,13 +429,19 @@ TimelineRenderer.prototype.stop = function() {
 };
 
 TimelineRenderer.prototype.render = function(container) {
+    let self = this;
+
     this._renderChart(container);
-    this._renderPlayer(container);
+    this._renderPlayer();
+
+    // On window resize, rerender the svgs
+    window.addEventListener('resize', function() {
+        self._renderChart(container);
+        self._setCurrentDate(self._currentDate);
+    });
 
     return Promise.resolve();
 };
-
-// HANDLE WINDOW RESIZE
 
 // ==================================================
 
@@ -373,6 +458,8 @@ VisualizationManager.prototype.render = function(container, mapContainer, timeli
         this._mapRenderer.render(mapContainer),
         this._timelineRenderer.render(timelineContainer)
     ]);
+
+    timelineContainer.addEventListener('currentDateChange', this._mapRenderer.handleCurrentDateChange.bind(this._mapRenderer));
 
     return this._renderPromise;
 };
