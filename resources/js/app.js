@@ -167,6 +167,7 @@ MapRenderer.prototype.render = function(container) {
     });
 
     let map = L.map(container, {
+        preferCanvas: true,
         zoomControl: false,
         maxBounds: [[-90,-180], [90, 180]],
         maxBoundsViscosity: 1.0,
@@ -196,28 +197,85 @@ MapRenderer.prototype.render = function(container) {
 
     this._map = map;
     this._reportsLayer = L.layerGroup().addTo(map);
+    // this._reportsLayer = L.markerClusterGroup().addTo(map);
+    // this._cityLayerMap = {};
+    // this._heatLayer = L.heatLayer([], {radius: 25, blur: 15, gradient: {0: 'yellow', 1: 'red'}}).addTo(map);
 
     return whenReadyPromise;
 };
 
 MapRenderer.prototype.handleCurrentDateChange = function(event) {
     let self = this;
-    // let startDate = this._dataManager.getData()[0].datetime;
-    let startDate = event.detail.previousValue;
-    let endDate = event.detail.value;
-    let reports = this._dataManager.getReportsInRange(startDate, endDate);
 
-    // this._reportsLayer.clearLayers();
+    let prevRenderDate = this._prevRenderDate != null ? this._prevRenderDate : this._dataManager.getData()[0].datetime;
+    let currRenderDate = event.detail.value;
+    let reports = this._dataManager.getReportsInRange(prevRenderDate, currRenderDate);
+
+    this._prevRenderDate = currRenderDate;
+
     reports.forEach(function(report) {
         let marker = L.circleMarker([report.latitude, report.longitude], {
-            radius: 1,
+            radius: 4,
             stroke: false,
             fill: true,
             fillColor: '#d7ba7d',
-            fillOpacity: 0.1
+            fillOpacity: 0.3
         });
         marker.addTo(self._reportsLayer);
     });
+
+    // let startDate = this._dataManager.getData()[0].datetime;
+    // let startDate = event.detail.previousValue;
+    // let endDate = event.detail.value;
+    // let reports = this._dataManager.getReportsInRange(startDate, endDate);
+
+    // reports.forEach(function(report) {
+    //     if (self._cityLayerMap[report.city] == null) {
+    //         let marker = L.circleMarker([report.latitude, report.longitude], {
+    //             radius: 2,
+    //             stroke: false,
+    //             fill: true,
+    //             fillColor: '#d7ba7d',
+    //             fillOpacity: 0.5
+    //         });
+    //         marker.addTo(self._reportsLayer);
+    //         self._cityLayerMap[report.city] = 1;
+    //     }
+    //     self._cityLayerMap[report.city] += 1
+    // });
+
+    // reports.forEach(function(report) {
+    //     let marker = L.marker([report.latitude, report.longitude]);
+    //     marker.addTo(self._reportsLayer);
+    // });
+
+    // var markers = L.markerClusterGroup();
+		
+	// 	for (var i = 0; i < addressPoints.length; i++) {
+	// 		var a = addressPoints[i];
+	// 		var title = a[2];
+	// 		var marker = L.marker(new L.LatLng(a[0], a[1]), { title: title });
+	// 		marker.bindPopup(title);
+	// 		markers.addLayer(marker);
+	// 	}
+
+	// 	map.addLayer(markers);
+
+    // this._reportsLayer.clearLayers();
+    // reports.forEach(function(report) {
+    //     let marker = L.circleMarker([report.latitude, report.longitude], {
+    //         radius: 4,
+    //         stroke: false,
+    //         fill: true,
+    //         fillColor: '#d7ba7d',
+    //         fillOpacity: 0.3
+    //     });
+    //     marker.addTo(self._reportsLayer);
+    // });
+
+    // reports.forEach(function(report) {
+    //     self._heatLayer.addLatLng([report.latitude, report.longitude]);
+    // });
 };
 
 // ==================================================
@@ -366,7 +424,7 @@ TimelineRenderer.prototype._getSnapToInterval = function(date, direction) {
     return new Date(dayStartTime + this._timeInterval);
 }
 
-TimelineRenderer.prototype._setCurrentDate = function(date) {
+TimelineRenderer.prototype._setCurrentDate = function(date, forceFireEvent) {
     let self = this;
     let prevDate = this._currentDate;
     let clipped = false;
@@ -387,15 +445,19 @@ TimelineRenderer.prototype._setCurrentDate = function(date) {
 
     this._renderTimeIndicator(this._currentDate);
 
-    let currentDateChangeEvent = new CustomEvent("currentDateChange", {
-        bubbles: true,
-        detail: {
-            previousValue: prevDate,
-            value: self._currentDate
-        }
-    });
+    let shouldFireEvent = prevDate.getFullYear() != this._currentDate.getFullYear();
 
-    this._container.dispatchEvent(currentDateChangeEvent);
+    if (forceFireEvent || shouldFireEvent) {
+        let currentDateChangeEvent = new CustomEvent("currentDateChange", {
+            bubbles: true,
+            detail: {
+                previousValue: prevDate,
+                value: self._currentDate
+            }
+        });
+    
+        this._container.dispatchEvent(currentDateChangeEvent);
+    }
 
     return clipped;
 };
@@ -410,6 +472,7 @@ TimelineRenderer.prototype.play = function() {
         this._currentDate = this._startDate;
     }
 
+    // this._playInterval = requestInterval(function() {
     this._playInterval = setInterval(function() {
         let clipped = self._setCurrentDate(new Date(self._currentDate.getTime() + self._timeInterval));
         if (clipped) {
@@ -423,6 +486,7 @@ TimelineRenderer.prototype.stop = function() {
     this._controlBtnIcon.classList.add('fa-play');
 
     if (this._playInterval != null) {
+        // clearRequestInterval(this._playInterval);
         clearInterval(this._playInterval);
     }
     this._playInterval = null;
@@ -460,6 +524,12 @@ VisualizationManager.prototype.render = function(container, mapContainer, timeli
     ]);
 
     timelineContainer.addEventListener('currentDateChange', this._mapRenderer.handleCurrentDateChange.bind(this._mapRenderer));
+    // timelineContainer.addEventListener('currentDateChange', function (event) {
+    //     let mapDrawUpdate = function () {
+    //         self._mapRenderer.handleCurrentDateChange.bind(self._mapRenderer)(event);
+    //     };
+    //     window.requestAnimationFrame(mapDrawUpdate);
+    // });
 
     return this._renderPromise;
 };

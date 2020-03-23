@@ -51,7 +51,7 @@ html,body{
 
 .tooltip-arrow {
     position: relative;
-    top: 100%;
+    /* top: 100%; */
     width: 0;
     height: 0;
     border-left: 8px solid transparent;
