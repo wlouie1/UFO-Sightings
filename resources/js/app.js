@@ -160,13 +160,13 @@ function MapRenderer(dataManager) {
     this._dataManager = dataManager;
 }
 
-MapRenderer.prototype.render = function(container) {
+MapRenderer.prototype._renderMap = function(container) {
     var whenReadyResolve;
     let whenReadyPromise = new Promise(function(resolve, _) {
         whenReadyResolve = resolve;
     });
 
-    let map = L.map(container, {
+    let map = L.map(container.querySelector('.map'), {
         preferCanvas: true,
         zoomControl: false,
         maxBounds: [[-90,-180], [90, 180]],
@@ -176,6 +176,9 @@ MapRenderer.prototype.render = function(container) {
     }).on('load', whenReadyResolve);
 
     L.control.attribution({position: 'topright'}).addTo(map);
+    L.control.zoom({
+        position: 'topright'
+    }).addTo(map);
     
     let urlTemplate = 'https://{s}.basemaps.cartocdn.com/dark_nolabels/{z}/{x}/{y}{r}.png';
     let options = {
@@ -204,11 +207,75 @@ MapRenderer.prototype.render = function(container) {
     return whenReadyPromise;
 };
 
+MapRenderer.prototype._renderSelectionOverlay = function(container) {
+    let self = this;
+    let containerWidth = container.clientWidth;
+    let containerHeight = container.clientHeight;
+
+    if (this._container == container) {
+        this._svg.attr('width', containerWidth)
+            .attr('height', containerHeight);
+        return;
+    }
+
+    this._container = container;
+
+    let overlay = container.querySelector('.map-overlay');
+
+    this._svg = d3.select(overlay)
+        .append('svg')
+        .attr('width', containerWidth)
+        .attr('height', containerHeight);
+
+    let selectionRadius = this._svg.append("ellipse")
+        .attr('class', 'map-selection-radius');
+
+    self._map.on('mouseover', function() {
+        selectionRadius.classed('invisible', false);
+        selectionRadius.classed('visible', true);
+    });
+    self._map.on('mousemove', function(event) {
+        let xPos = event.containerPoint.x;
+        let yPos = event.containerPoint.y;
+
+        selectionRadius.attr('cx', xPos)
+            .attr('cy', yPos)
+            .attr('rx', 50)
+            .attr('ry', 50);
+
+    });
+    self._map.on('mouseout', function() {
+        selectionRadius.classed('visible', false);
+        selectionRadius.classed('invisible', true);
+    });
+
+    return Promise.resolve();
+};
+
+MapRenderer.prototype.render = function(container) {
+    let self =  this;
+
+    // On window resize, rerender the svgs
+    window.addEventListener('resize', function() {
+        self._renderSelectionOverlay(container);
+    });
+
+    return Promise.all([
+        this._renderMap(container),
+        this._renderSelectionOverlay(container)
+    ]);
+};
+
 MapRenderer.prototype.handleCurrentDateChange = function(event) {
     let self = this;
 
     let prevRenderDate = this._prevRenderDate != null ? this._prevRenderDate : this._dataManager.getData()[0].datetime;
     let currRenderDate = event.detail.value;
+
+    if (currRenderDate.getTime() <= prevRenderDate.getTime()) {
+        this._reportsLayer.clearLayers();
+        prevRenderDate = this._dataManager.getData()[0].datetime;
+    }
     let reports = this._dataManager.getReportsInRange(prevRenderDate, currRenderDate);
 
     this._prevRenderDate = currRenderDate;
@@ -219,63 +286,11 @@ MapRenderer.prototype.handleCurrentDateChange = function(event) {
             stroke: false,
             fill: true,
             fillColor: '#d7ba7d',
-            fillOpacity: 0.3
+            fillOpacity: 0.3,
+            interactive: false
         });
         marker.addTo(self._reportsLayer);
     });
-
-    // let startDate = this._dataManager.getData()[0].datetime;
-    // let startDate = event.detail.previousValue;
-    // let endDate = event.detail.value;
-    // let reports = this._dataManager.getReportsInRange(startDate, endDate);
-
-    // reports.forEach(function(report) {
-    //     if (self._cityLayerMap[report.city] == null) {
-    //         let marker = L.circleMarker([report.latitude, report.longitude], {
-    //             radius: 2,
-    //             stroke: false,
-    //             fill: true,
-    //             fillColor: '#d7ba7d',
-    //             fillOpacity: 0.5
-    //         });
-    //         marker.addTo(self._reportsLayer);
-    //         self._cityLayerMap[report.city] = 1;
-    //     }
-    //     self._cityLayerMap[report.city] += 1
-    // });
-
-    // reports.forEach(function(report) {
-    //     let marker = L.marker([report.latitude, report.longitude]);
-    //     marker.addTo(self._reportsLayer);
-    // });
-
-    // var markers = L.markerClusterGroup();
-		
-	// 	for (var i = 0; i < addressPoints.length; i++) {
-	// 		var a = addressPoints[i];
-	// 		var title = a[2];
-	// 		var marker = L.marker(new L.LatLng(a[0], a[1]), { title: title });
-	// 		marker.bindPopup(title);
-	// 		markers.addLayer(marker);
-	// 	}
-
-	// 	map.addLayer(markers);
-
-    // this._reportsLayer.clearLayers();
-    // reports.forEach(function(report) {
-    //     let marker = L.circleMarker([report.latitude, report.longitude], {
-    //         radius: 4,
-    //         stroke: false,
-    //         fill: true,
-    //         fillColor: '#d7ba7d',
-    //         fillOpacity: 0.3
-    //     });
-    //     marker.addTo(self._reportsLayer);
-    // });
-
-    // reports.forEach(function(report) {
-    //     self._heatLayer.addLatLng([report.latitude, report.longitude]);
-    // });
 };
 
 // ==================================================
@@ -301,7 +316,6 @@ TimelineRenderer.prototype._renderChart = function(container) {
     this._container = container;
 
     let dayData = this._dataManager.getDayData();
-    // let dayMap = this._dataManager.getDayMap();
 
     let containerWidth = container.clientWidth;
     let containerHeight = container.clientHeight;
@@ -424,7 +438,7 @@ TimelineRenderer.prototype._getSnapToInterval = function(date, direction) {
     return new Date(dayStartTime + this._timeInterval);
 }
 
-TimelineRenderer.prototype._setCurrentDate = function(date, forceFireEvent) {
+TimelineRenderer.prototype.setCurrentDate = function(date, forceFireEvent) {
     let self = this;
     let prevDate = this._currentDate;
     let clipped = false;
@@ -462,6 +476,10 @@ TimelineRenderer.prototype._setCurrentDate = function(date, forceFireEvent) {
     return clipped;
 };
 
+TimelineRenderer.prototype.setToEndDate = function() {
+    this.setCurrentDate(this._endDate, true);
+};
+
 TimelineRenderer.prototype.play = function() {
     let self = this;
 
@@ -474,7 +492,7 @@ TimelineRenderer.prototype.play = function() {
 
     // this._playInterval = requestInterval(function() {
     this._playInterval = setInterval(function() {
-        let clipped = self._setCurrentDate(new Date(self._currentDate.getTime() + self._timeInterval));
+        let clipped = self.setCurrentDate(new Date(self._currentDate.getTime() + self._timeInterval));
         if (clipped) {
             self.stop();
         }
@@ -501,7 +519,7 @@ TimelineRenderer.prototype.render = function(container) {
     // On window resize, rerender the svgs
     window.addEventListener('resize', function() {
         self._renderChart(container);
-        self._setCurrentDate(self._currentDate);
+        self.setCurrentDate(self._currentDate);
     });
 
     return Promise.resolve();
@@ -516,12 +534,15 @@ function VisualizationManager(dataManager) {
 }
 
 VisualizationManager.prototype.render = function(container, mapContainer, timelineContainer) {
+    let self = this;
     this._container = container;
 
     this._renderPromise = Promise.all([
         this._mapRenderer.render(mapContainer),
         this._timelineRenderer.render(timelineContainer)
-    ]);
+    ]).then(function() {
+        self._timelineRenderer.setToEndDate();
+    });
 
     timelineContainer.addEventListener('currentDateChange', this._mapRenderer.handleCurrentDateChange.bind(this._mapRenderer));
     // timelineContainer.addEventListener('currentDateChange', function (event) {
@@ -570,7 +591,7 @@ async function render() {
 
     // Render visualization behind loading screen
     let vizContainer = document.querySelector('.viz-container');
-    let mapContainer = document.querySelector('#map');
+    let mapContainer = document.querySelector('.map-container');
     let timelineContainer = document.querySelector('.timeline-container');
     let vizManager = new VisualizationManager(dataManager);
     await vizManager.render(vizContainer, mapContainer, timelineContainer);
@@ -580,281 +601,8 @@ async function render() {
     await vizManager.show();
 
     // Start playing the map through time
-    vizManager.play();
+    // vizManager.play();
 }
-
-
-
-
-
-
-
-
-// function loadData() {
-//     return d3.csv(DATA_PATH, function(d) {
-//         d.datetime = new Date(d.datetime);
-//         d.duration_seconds = parseFloat(d.duration_seconds);
-//         d.latitude = parseFloat(d.latitude);
-//         d.longitude = parseFloat(d.longitude);
-//         d.date_documented = new Date(d.date_documented);
-//         return d;
-//     }).then(function(data) {
-//         return data.sort(function(a, b) {
-//             return a.datetime - b.datetime;
-//         });
-//     });
-// }
-
-
-// function groupByDay(data) {
-//     let dayMap = {};
-//     let days = [];
-
-//     for (let i = 0; i < data.length; i++) {
-//         let day = new Date(data[i].datetime.toDateString());
-//         if (dayMap[day] != null) {
-//             dayMap[day].reports.push(data[i]);
-//         } else {
-//             dayMap[day] = { day: day, reports: [ data[i] ] };
-//             days.push(day);
-//         }
-//     }
-
-//     let groupedData = days.map(function(day) {
-//         return dayMap[day];
-//     });
-
-//     return { data: groupedData, map: dayMap };
-// }
-
-
-// function getReports(day, dayMap) {
-//     if (dayMap[day] == null) {
-//         return [];
-//     }
-//     return dayMap[day].reports;
-// }
-
-// // ========== Render Utilities ==========
-
-// function getLoadingContainerElem() {
-//     return document.querySelector('.loading-container');
-// }
-
-
-// function getVizContainerElem() {
-//     return document.querySelector('.viz-container');
-// }
-
-
-// function renderLoading() {
-//     // Should already be set up in HTML and CSS
-//     return new Promise(function(resolve, _) {
-//         setTimeout(resolve, MIN_LOADING_MS);
-//     });
-// }
-
-
-// function removeLoading() {
-//     var whenReadyResolve;
-//     let whenReadyPromise = new Promise(function(resolve, _) {
-//         whenReadyResolve = resolve;
-//     });
-
-//     let loadingContainer = getLoadingContainerElem();
-//     loadingContainer.addEventListener('transitionend', function() {
-//         loadingContainer.parentNode.removeChild(loadingContainer);
-//         whenReadyResolve();
-//     });
-
-//     loadingContainer.classList.remove('visible');
-//     loadingContainer.classList.add('invisible');
-
-//     return whenReadyPromise;
-// }
-
-
-// function getMapInstance() {
-//     return document.querySelector('#map')._leaflet_map;
-// }
-
-
-// function renderMap(data) {
-//     var whenReadyResolve;
-//     let whenReadyPromise = new Promise(function(resolve, _) {
-//         whenReadyResolve = resolve;
-//     });
-
-//     let map = L.map('map', {
-//         zoomControl: false,
-//         maxBounds: [[-90,-180], [90, 180]],
-//         maxBoundsViscosity: 1.0,
-//         zoomSnap: 0.1
-//     }).on('load', whenReadyResolve)
-
-//     document.querySelector('#map')._leaflet_map = map;
-    
-//     let urlTemplate = 'https://{s}.basemaps.cartocdn.com/dark_nolabels/{z}/{x}/{y}{r}.png';
-//     let options = {
-//         attribution: '&copy; ' + 
-//                     '<a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>' +
-//                     ' contributors &copy; ' +
-//                     '<a href="https://carto.com/attributions">CARTO</a>',
-//         subdomains: 'abcd',
-//         maxZoom: 19,
-//         noWrap: true,
-//         bounds: [[-90,-180], [90,180]]
-//     };
-
-//     let CartoDB_DarkMatterNoLabels = L.tileLayer(urlTemplate, options);
-//     CartoDB_DarkMatterNoLabels.addTo(map);
-
-//     map.setView([24, 0], 2.8);
-//     // map.setView([0, 0], 2);
-    
-//     return whenReadyPromise;
-// }
-
-
-// function renderTimeline(dayGroup) {
-//     let dayData = dayGroup.data;
-//     let dayMap = dayGroup.map;
-
-//     let container = document.querySelector('.timeline-container');
-//     let containerWidth = container.clientWidth;
-//     let containerHeight = container.clientHeight;
-
-//     let xScale = d3.scaleTime()
-//         .domain(d3.extent(dayData, d => d.day))
-//         .range([0, containerWidth]);
-
-//     let yScale = d3.scaleLinear()
-//         .domain([0, d3.max(dayData, d => d.reports.length)])
-//         .range([containerHeight, 0]);
-    
-//     let svg = d3.select(container)
-//         .append('svg')
-//         .attr('width', containerWidth)
-//         .attr('height', containerHeight);
-
-//     let chartG = svg.append('g');
-
-//     let line = d3.line()
-//         .x(d => xScale(d.day))
-//         .y(d => yScale(d.reports.length));
-    
-//     chartG.append('path')
-//         .attr('class', 'timeline-chart-line')
-//         .attr('d', line(dayData));
-
-//     let timeAxisG = chartG.append('g');
-
-//     let timeAxis = d3.axisBottom(xScale).ticks(10);
-//     timeAxisG.attr('class', 'timeline-chart-axis')
-//         .call(timeAxis);
-
-//     // let glassPane = svg.append("rect")
-//     //     .attr('x', 0)
-//     //     .attr('y', 0)
-//     //     .attr('width', containerWidth)
-//     //     .attr('height', containerHeight)
-//     //     .attr('class', 'timeline-chart-glasspane');
-    
-//     // let verticalSeekLine = svg.append('line')
-//     //     .attr('x1', 0)
-//     //     .attr('y1', 0)
-//     //     .attr('x2', 0)
-//     //     .attr('y2', containerHeight)
-//     //     .attr('class', 'timeline-chart-seekline invisible');
-
-//     // let seekTooltip = document.querySelector('.seek-tooltip');
-//     // let seekTooltipContent = document.querySelector('.seek-tooltip .tooltip-content-container');
-//     // let seekTooltipArrow = document.querySelector('.seek-tooltip .tooltip-arrow');
-//     // let seekTooltipl1 = document.querySelector('.seek-tooltip-l1');
-//     // let seekTooltipl2 = document.querySelector('.seek-tooltip-l2');
-
-//     // glassPane.on('mouseenter', function() {
-//     //     verticalSeekLine.attr('class', 'timeline-chart-seekline visible');
-//     //     seekTooltip.classList.remove('invisible');
-//     //     seekTooltip.classList.add('visible');
-//     // }).on('mousemove', function() {
-//     //     var xPos = d3.mouse(this)[0];
-//     //     // console.log(d3.mouse(this))
-//     //     // console.log(xScale.invert(xPos));
-//     //     verticalSeekLine.attr("x1", xPos)
-//     //         .attr('x2', xPos);
-
-//     //     let dayString = xScale.invert(xPos).toDateString();
-//     //     seekTooltipl1.innerHTML = dayString;
-//     //     seekTooltipl2.innerHTML = getReports(new Date(dayString), dayMap).length + ' Reports';
-
-//     //     let tooltipHalfWidth = seekTooltipContent.clientWidth / 2;
-//     //     if (xPos < tooltipHalfWidth) {
-//     //         seekTooltipContent.style.left = '0px';
-//     //     } else if (xPos > containerWidth - tooltipHalfWidth) {
-//     //         seekTooltipContent.style.left = (containerWidth - seekTooltipContent.clientWidth) + 'px'
-//     //     } else {
-//     //         seekTooltipContent.style.left = (xPos - tooltipHalfWidth) + 'px';
-//     //     }
-//     //     seekTooltipArrow.style.left = (xPos - 8) + 'px';
-//     // }).on('mouseleave', function() {
-//     //     verticalSeekLine.attr('class', 'timeline-chart-seekline invisible');
-//     //     seekTooltip.classList.remove('visible');
-//     //     seekTooltip.classList.add('invisible');
-//     // });
-// }
-
-
-// // function renderControls(data) {
-// //     return renderTimeline(data);
-// // }
-
-
-// function renderViz(data) {
-//     let dayGroup = groupByDay(data);
-//     return Promise.all([
-//         renderMap(data),
-//         renderTimeline(dayGroup)
-//     ]);
-// }
-
-
-// function showViz() {
-//     var whenReadyResolve;
-//     let whenReadyPromise = new Promise(function(resolve, _) {
-//         whenReadyResolve = resolve;
-//     });
-
-//     let vizContainer = getVizContainerElem();
-//     vizContainer.addEventListener('transitionend', whenReadyResolve);
-
-//     vizContainer.classList.remove('invisible');
-//     vizContainer.classList.add('visible');
-
-//     return whenReadyPromise;
-// }
-
-
-// async function render() {
-//     // In parallel:
-//     // Show loading screen, fetch the data and make sure it's date sorted
-//     let [_, data] = await Promise.all([renderLoading(), loadData()]);
-//     data.sort(function(a, b) {
-//         return a.datetime - b.datetime;
-//     });
-
-//     // Render visualization behind the loading screen
-//     _ = await renderViz(data);
-
-//     // Once everything is rendered,
-//     // fade out/remove the loading screen
-//     // fade in visualization
-//     _ = await removeLoading();
-//     _ = await showViz();
-
-//     // Start playing the map through time
-//     console.log(data);
-// }
 
 
 // ========== Main ==========

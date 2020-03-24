@@ -109,6 +109,7 @@ html,body{
 } */
 
 .map-container {
+    position: relative;
     flex: 1 1 auto;
     width: 100%;
     height: 100%;
@@ -116,9 +117,29 @@ html,body{
 }
 
 .map {
+    position: absolute;
     width: 100%;
     height: 100%;
     background-color: #262626;
+}
+
+.map-overlay {
+    position: absolute;
+    pointer-events: none;
+    z-index: 1001;
+    width: 100%;
+    height: 100%;
+}
+
+/* .map-glasspane {
+    opacity: 0;
+} */
+
+.map-selection-radius {
+    fill-opacity: 0.1;
+    stroke: #FFFFFF;
+    stroke-width: 4px;
+    stroke-dasharray: 4 2;
 }
 
 /* .controls-container {
