@@ -175,10 +175,9 @@ MapRenderer.prototype._renderMap = function(container) {
         attributionControl: false
     }).on('load', whenReadyResolve);
 
-    L.control.attribution({position: 'topright'}).addTo(map);
-    L.control.zoom({
-        position: 'topright'
-    }).addTo(map);
+    L.control.attribution({ position: 'topright' }).addTo(map);
+    L.control.scale({ position: 'topright', maxWidth: 100 }).addTo(map);
+    L.control.zoom({ position: 'topright' }).addTo(map);
     
     let urlTemplate = 'https://{s}.basemaps.cartocdn.com/dark_nolabels/{z}/{x}/{y}{r}.png';
     let options = {
@@ -247,6 +246,9 @@ MapRenderer.prototype._renderSelectionOverlay = function(container) {
     self._map.on('mouseout', function() {
         selectionRadius.classed('visible', false);
         selectionRadius.classed('invisible', true);
+    });
+    self._map.on('click', function(event) {
+        console.log(event);
     });
 
     return Promise.resolve();
@@ -349,6 +351,13 @@ TimelineRenderer.prototype._renderChart = function(container) {
     let timeAxis = d3.axisBottom(this._xScale).ticks(10);
     timeAxisG.attr('class', 'timeline-chart-axis')
         .call(timeAxis);
+
+    this._svg.append('text')
+        .attr('x', 10)
+        .attr('y', containerHeight - 5)
+        .attr('alignment-baseline', 'baseline')
+        .text('Number of Reports by Day')
+        .attr('class', 'timeline-desc-text');
 };
 
 TimelineRenderer.prototype._renderPlayer = function() {

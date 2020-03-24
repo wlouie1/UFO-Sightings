@@ -165,6 +165,12 @@ html,body{
     color: #E5E5E5;
 }
 
+.timeline-desc-text {
+    fill: #E5E5E5;
+    font-family: Inconsolata;
+    opacity: 0.7;
+}
+
 .timeline-chart-glasspane {
     opacity: 0;
 }
