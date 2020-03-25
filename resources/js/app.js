@@ -158,9 +158,16 @@ LoadingRenderer.prototype.remove = function() {
 
 function MapRenderer(dataManager) {
     this._dataManager = dataManager;
+    this._selectionEnabled = true;
+    this._focusedMarkersCenter = { x: -1, y: -1 };
+    this._focusedMarkers = [];
+    this._selectedMarkers = [];
+    this._selectionRadius = 50;
 }
 
 MapRenderer.prototype._renderMap = function(container) {
+    let self = this;
+
     var whenReadyResolve;
     let whenReadyPromise = new Promise(function(resolve, _) {
         whenReadyResolve = resolve;
@@ -196,14 +203,40 @@ MapRenderer.prototype._renderMap = function(container) {
 
     map.setView([24, 0], 2.8);
     // map.setView([0, 0], 2);
+    map.on('zoomend', function(event) {
+        self._rebuildQuadTree();
+        // console.log(event)
+    });
 
     this._map = map;
     this._reportsLayer = L.layerGroup().addTo(map);
+    this._markersData = [];
+    this._emptyQuadTree();
+    // this._markersQuadTree = d3.quadtree()
+    //     .x(function(d) { return d.report.latitude; })
+    //     .y(function(d) { return d.report.longitude; });
     // this._reportsLayer = L.markerClusterGroup().addTo(map);
     // this._cityLayerMap = {};
     // this._heatLayer = L.heatLayer([], {radius: 25, blur: 15, gradient: {0: 'yellow', 1: 'red'}}).addTo(map);
 
     return whenReadyPromise;
+};
+
+MapRenderer.prototype._emptyQuadTree = function() {
+    let self = this;
+
+    this._markersQuadTree = d3.quadtree()
+        .x(function(d) { return self._map.latLngToLayerPoint([d.report.latitude, d.report.longitude]).x; })
+        .y(function(d) { return self._map.latLngToLayerPoint([d.report.latitude, d.report.longitude]).y; });
+};
+
+MapRenderer.prototype._rebuildQuadTree = function() {
+    let self = this;
+    
+    this._markersQuadTree = d3.quadtree()
+        .x(function(d) { return self._map.latLngToLayerPoint([d.report.latitude, d.report.longitude]).x; })
+        .y(function(d) { return self._map.latLngToLayerPoint([d.report.latitude, d.report.longitude]).y; })
+        .addAll(this._markersData);
 };
 
 MapRenderer.prototype._renderSelectionOverlay = function(container) {
@@ -230,25 +263,50 @@ MapRenderer.prototype._renderSelectionOverlay = function(container) {
         .attr('class', 'map-selection-radius');
 
     self._map.on('mouseover', function() {
-        selectionRadius.classed('invisible', false);
-        selectionRadius.classed('visible', true);
+        selectionRadius.classed('invisible', !self._selectionEnabled);
+        selectionRadius.classed('visible', self._selectionEnabled);
     });
+
     self._map.on('mousemove', function(event) {
+        if (!self._selectionEnabled) {
+            selectionRadius.classed('visible', false);
+            selectionRadius.classed('invisible', true);
+            return;
+        }
+
+        let pos = event.containerPoint;
         let xPos = event.containerPoint.x;
         let yPos = event.containerPoint.y;
 
         selectionRadius.attr('cx', xPos)
             .attr('cy', yPos)
-            .attr('rx', 50)
-            .attr('ry', 50);
+            .attr('rx', self._selectionRadius)
+            .attr('ry', self._selectionRadius);
 
+        self._focusRadiusMarkers(pos);
     });
+
     self._map.on('mouseout', function() {
         selectionRadius.classed('visible', false);
         selectionRadius.classed('invisible', true);
     });
+
     self._map.on('click', function(event) {
-        console.log(event);
+        if (!self._selectionEnabled) {
+            return;
+        }
+
+        let pos = event.containerPoint;
+        if (self._focusedMarkersCenter.x != pos.x || self._focusedMarkersCenter.y != pos.y) {
+            self._focusRadiusMarkers(pos);
+        }
+        
+        if (self._focusedMarkers.length == 0) {
+            self._deSelectRadiusMarkers();
+        } else {
+            self._selectRadiusMarkers();
+            console.log(self._selectedMarkers.length)
+        }
     });
 
     return Promise.resolve();
@@ -268,6 +326,86 @@ MapRenderer.prototype.render = function(container) {
     ]);
 };
 
+MapRenderer.prototype._focusRadiusMarkers = function(centerPos) {
+    let self = this;
+
+    // Reset previously focused markers
+    this._focusedMarkers.forEach(function(markerReport) {
+        markerReport.marker.setStyle({ fillColor: '#d7ba7d' });
+    });
+
+    this._focusedMarkersCenter = centerPos;
+    this._focusedMarkers = [];
+    let layerCenterPos = this._map.containerPointToLayerPoint(centerPos);
+    this._markersQuadTree.visit(function(node, x0, y0, x1, y1) {
+        if (!node.length) {
+          do {
+            let markerReport = node.data;
+            let latLng = [markerReport.report.latitude, markerReport.report.longitude];
+            let pos = self._map.latLngToContainerPoint(latLng);
+
+            // Focus marker if inside selection ring
+            let x = pos.x - centerPos.x;
+            let y = pos.y - centerPos.y;
+            if (x * x + y * y < self._selectionRadius * self._selectionRadius) {
+                self._focusedMarkers.push(markerReport);
+            }
+          } while (node = node.next);
+        }
+    
+        // Prune quadrant if it doesn't overlap selection ring
+        // let rectLowerPos = self._map.latLngToContainerPoint([lat0, lng0]);
+        // let rectUpperPos = self._map.latLngToContainerPoint([lat1, lng1]);
+        // let x0 = rectLowerPos.x;
+        // let y0 = rectLowerPos.y;
+        // let x1 = rectUpperPos.x;
+        // let y1 = rectUpperPos.y;
+        let width = x1 - x0;
+        let height = y1 - y0;
+        let dx = layerCenterPos.x - Math.max(x0, Math.min(layerCenterPos.x, x0 + width));
+        let dy = layerCenterPos.y - Math.max(y0, Math.min(layerCenterPos.y, y0 + height));
+        return (dx * dx + dy * dy) >= (self._selectionRadius * self._selectionRadius);
+        // return false;
+    });
+
+    this._focusedMarkers.forEach(function(markerReport) {
+        // turn them green
+        markerReport.marker.setStyle({ fillColor: 'green' });
+    });
+};
+
+MapRenderer.prototype._selectRadiusMarkers = function() {
+    this._selectedMarkers = this._focusedMarkers;
+
+    this._selectedMarkers.forEach(function(markerReport) {
+        // turn them green
+
+        // bring up side panel + pan map
+
+        // add marker with ufo shape?
+
+    });
+};
+
+MapRenderer.prototype._deSelectRadiusMarkers = function() {
+    this._selectedMarkers.forEach(function(markerReport) {
+        // close side panel + pan map
+
+        // turn them yellow etc.
+
+    });
+
+    this._selectedMarkers = [];
+};
+
+MapRenderer.prototype.enableSelection = function() {
+    this._selectionEnabled = true;
+};
+
+MapRenderer.prototype.disableSelection = function() {
+    this._selectionEnabled = false;
+};
+
 MapRenderer.prototype.handleCurrentDateChange = function(event) {
     let self = this;
 
@@ -276,6 +414,8 @@ MapRenderer.prototype.handleCurrentDateChange = function(event) {
 
     if (currRenderDate.getTime() <= prevRenderDate.getTime()) {
         this._reportsLayer.clearLayers();
+        this._markersData = [];
+        this._emptyQuadTree();
         prevRenderDate = this._dataManager.getData()[0].datetime;
     }
     let reports = this._dataManager.getReportsInRange(prevRenderDate, currRenderDate);
@@ -292,8 +432,11 @@ MapRenderer.prototype.handleCurrentDateChange = function(event) {
             interactive: false
         });
         marker.addTo(self._reportsLayer);
+        self._markersData.push({ marker: marker, report: report });
+        self._markersQuadTree.add({ marker: marker, report: report });
     });
 };
+
 
 // ==================================================
 
@@ -392,8 +535,11 @@ TimelineRenderer.prototype._renderTooltip = function(date) {
     let seekTooltipArrow = this._container.querySelector('.seek-tooltip .tooltip-arrow');
     let seekTooltipl1 = this._container.querySelector('.seek-tooltip-l1');
     let seekTooltipl2 = this._container.querySelector('.seek-tooltip-l2');
+    // let seekTooltipl3 = this._container.querySelector('.seek-tooltip-l3');
     seekTooltipl1.innerHTML = 'Year: ' + year;
     seekTooltipl2.innerHTML = 'Reports: ' + this._dataManager.getReports(new Date(year, 0), yearMap).length;
+    // seekTooltipl3.innerHTML = 'Since ' + this._startDate.getFullYear() + ': ' + this._dataManager.getReportsInRange(this._startDate, date).length;
+
     // CUMULATIVE REPORTS?
 
     let tooltipHalfWidth = seekTooltipContent.clientWidth / 2;
@@ -471,7 +617,7 @@ TimelineRenderer.prototype.setCurrentDate = function(date, forceFireEvent) {
     let shouldFireEvent = prevDate.getFullYear() != this._currentDate.getFullYear();
 
     if (forceFireEvent || shouldFireEvent) {
-        let currentDateChangeEvent = new CustomEvent("currentDateChange", {
+        let currentDateChangeEvent = new CustomEvent('currentDateChange', {
             bubbles: true,
             detail: {
                 previousValue: prevDate,
@@ -499,6 +645,13 @@ TimelineRenderer.prototype.play = function() {
         this._currentDate = this._startDate;
     }
 
+    let timelinePlayEvent = new CustomEvent('timelinePlayEvent', {
+        bubbles: true,
+        detail: null
+    });
+
+    this._container.dispatchEvent(timelinePlayEvent);
+
     // this._playInterval = requestInterval(function() {
     this._playInterval = setInterval(function() {
         let clipped = self.setCurrentDate(new Date(self._currentDate.getTime() + self._timeInterval));
@@ -515,6 +668,13 @@ TimelineRenderer.prototype.stop = function() {
     if (this._playInterval != null) {
         // clearRequestInterval(this._playInterval);
         clearInterval(this._playInterval);
+
+        let timelineStopEvent = new CustomEvent('timelineStopEvent', {
+            bubbles: true,
+            detail: null
+        });
+    
+        this._container.dispatchEvent(timelineStopEvent);
     }
     this._playInterval = null;
 };
@@ -554,6 +714,8 @@ VisualizationManager.prototype.render = function(container, mapContainer, timeli
     });
 
     timelineContainer.addEventListener('currentDateChange', this._mapRenderer.handleCurrentDateChange.bind(this._mapRenderer));
+    timelineContainer.addEventListener('timelinePlayEvent', this._mapRenderer.disableSelection.bind(this._mapRenderer));
+    timelineContainer.addEventListener('timelineStopEvent', this._mapRenderer.enableSelection.bind(this._mapRenderer));
     // timelineContainer.addEventListener('currentDateChange', function (event) {
     //     let mapDrawUpdate = function () {
     //         self._mapRenderer.handleCurrentDateChange.bind(self._mapRenderer)(event);
