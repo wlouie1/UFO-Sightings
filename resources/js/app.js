@@ -203,8 +203,10 @@ MapRenderer.prototype._renderMap = function(container) {
 
     map.setView([24, 0], 2.8);
     // map.setView([0, 0], 2);
-    map.on('zoomend', function(event) {
+    map.on('zoomend', function() {
         self._rebuildQuadTree();
+        self._focusRadiusMarkers(self._focusedMarkersCenter);
+        self._renderTooltip();
         // console.log(event)
     });
 
@@ -239,6 +241,80 @@ MapRenderer.prototype._rebuildQuadTree = function() {
         .addAll(this._markersData);
 };
 
+MapRenderer.prototype._renderTooltip = function() {
+    let containerWidth = this._container.clientWidth;
+
+    let radiusTooltip = this._container.querySelector('.radius-tooltip');
+    if (radiusTooltip.classList.contains('invisible')) {
+        radiusTooltip.classList.remove('invisible');
+        radiusTooltip.classList.add('visible');
+    }
+
+    let radiusTooltipContent = this._container.querySelector('.radius-tooltip .tooltip-content-container');
+    let tooltipWidth = radiusTooltipContent.clientWidth;
+    let tooltipHeight = radiusTooltip.clientHeight;
+    let radiusTooltipArrowTop = this._container.querySelector('.radius-tooltip .tooltip-arrow-top');
+    let radiusTooltipArrowBottom = this._container.querySelector('.radius-tooltip .tooltip-arrow-bottom');
+    let radiusTooltipl1 = this._container.querySelector('.radius-tooltip-l1');
+    let radiusTooltipl2 = this._container.querySelector('.radius-tooltip-l2');
+    let radiusTooltipl3 = this._container.querySelector('.radius-tooltip-l3');
+    let radiusTooltipl4 = this._container.querySelector('.radius-tooltip-l4');
+    
+    let numReports = this._focusedMarkers.length;
+    let approxRadiusKM = this._map.containerPointToLatLng(this._focusedMarkersCenter).distanceTo(
+        this._map.containerPointToLatLng([this._focusedMarkersCenter.x + this._selectionRadius, this._focusedMarkersCenter.y])
+    ) / 1000;
+    let dateStart = new Date(Math.min.apply(Math, this._focusedMarkers.map(function(markerReport) { return markerReport.report.datetime; })));
+    let dateEnd = new Date(Math.max.apply(Math, this._focusedMarkers.map(function(markerReport) { return markerReport.report.datetime; })));
+    radiusTooltipl1.innerHTML = 'Number of Reports: ' + numReports;
+    radiusTooltipl2.innerHTML = 'Radius (Approx km): ' + (approxRadiusKM > 1 ? Math.round(approxRadiusKM) : approxRadiusKM.toPrecision(3)); 
+    radiusTooltipl3.innerHTML = numReports > 0 ? 'Oldest Report: ' + dateStart.toDateString() : '';
+    radiusTooltipl4.innerHTML = numReports > 0 ? 'Latest Report: ' + dateEnd.toDateString() : '';
+
+    let tooltipTop = this._focusedMarkersCenter.y - this._selectionRadius - tooltipHeight;
+    let radiusTooltipArrow;
+    if (tooltipTop > 0) {
+        radiusTooltipArrowBottom.classList.remove('invisible');
+        radiusTooltipArrowBottom.classList.add('visible');
+        radiusTooltipArrowTop.classList.remove('visible');
+        radiusTooltipArrowTop.classList.add('invisible');
+        radiusTooltipArrow = radiusTooltipArrowBottom;
+    } else {
+        tooltipTop = this._focusedMarkersCenter.y + this._selectionRadius;
+        radiusTooltipArrowTop.classList.remove('invisible');
+        radiusTooltipArrowTop.classList.add('visible');
+        radiusTooltipArrowBottom.classList.remove('visible');
+        radiusTooltipArrowBottom.classList.add('invisible');
+        radiusTooltipArrow = radiusTooltipArrowTop;
+    }
+    tooltipTop = tooltipTop + 'px';
+    let tooltipArrowTop = tooltipTop;
+
+    let tooltipLeft;
+    let tooltipHalfWidth = tooltipWidth / 2;
+    if (this._focusedMarkersCenter.x < tooltipHalfWidth) {
+        tooltipLeft = '0px';
+    } else if (this._focusedMarkersCenter.x > containerWidth - tooltipHalfWidth) {
+        tooltipLeft = (containerWidth - tooltipWidth) + 'px'
+    } else {
+        tooltipLeft = (this._focusedMarkersCenter.x - tooltipHalfWidth) + 'px';
+    }
+    let tooltipArrowLeft = this._focusedMarkersCenter.x - 8 + 'px';
+
+    radiusTooltipContent.style.top = tooltipTop;
+    radiusTooltipContent.style.left = tooltipLeft;
+    radiusTooltipArrow.style.top = tooltipArrowTop;
+    radiusTooltipArrow.style.left = tooltipArrowLeft;
+};
+
+MapRenderer.prototype._hideTooltip = function() {
+    let radiusTooltip = this._container.querySelector('.radius-tooltip');
+    if (radiusTooltip.classList.contains('visible')) {
+        radiusTooltip.classList.remove('visible');
+        radiusTooltip.classList.add('invisible');
+    }
+};
+
 MapRenderer.prototype._renderSelectionOverlay = function(container) {
     let self = this;
     let containerWidth = container.clientWidth;
@@ -259,12 +335,19 @@ MapRenderer.prototype._renderSelectionOverlay = function(container) {
         .attr('width', containerWidth)
         .attr('height', containerHeight);
 
-    let selectionRadius = this._svg.append("ellipse")
+    let selectionRadius = this._svg.append('ellipse')
         .attr('class', 'map-selection-radius');
+
+    // let radiusTooltip = selectionG.append('g');
+    // radiusTooltip.append('rect')
+    //     .attr('')
 
     self._map.on('mouseover', function() {
         selectionRadius.classed('invisible', !self._selectionEnabled);
         selectionRadius.classed('visible', self._selectionEnabled);
+        if (!self._selectionEnabled) {
+            self._hideTooltip();
+        }
     });
 
     self._map.on('mousemove', function(event) {
@@ -273,6 +356,9 @@ MapRenderer.prototype._renderSelectionOverlay = function(container) {
             selectionRadius.classed('invisible', true);
             return;
         }
+
+        selectionRadius.classed('visible', true);
+        selectionRadius.classed('invisible', false);
 
         let pos = event.containerPoint;
         let xPos = event.containerPoint.x;
@@ -284,11 +370,14 @@ MapRenderer.prototype._renderSelectionOverlay = function(container) {
             .attr('ry', self._selectionRadius);
 
         self._focusRadiusMarkers(pos);
+
+        self._renderTooltip();
     });
 
     self._map.on('mouseout', function() {
         selectionRadius.classed('visible', false);
         selectionRadius.classed('invisible', true);
+        self._hideTooltip();
     });
 
     self._map.on('click', function(event) {
@@ -532,7 +621,7 @@ TimelineRenderer.prototype._renderTooltip = function(date) {
     }
 
     let seekTooltipContent = this._container.querySelector('.seek-tooltip .tooltip-content-container');
-    let seekTooltipArrow = this._container.querySelector('.seek-tooltip .tooltip-arrow');
+    let seekTooltipArrow = this._container.querySelector('.seek-tooltip .tooltip-arrow-bottom');
     let seekTooltipl1 = this._container.querySelector('.seek-tooltip-l1');
     let seekTooltipl2 = this._container.querySelector('.seek-tooltip-l2');
     // let seekTooltipl3 = this._container.querySelector('.seek-tooltip-l3');
