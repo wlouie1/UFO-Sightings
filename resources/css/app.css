@@ -157,6 +157,52 @@ html,body{
     height: 100%;
 }
 
+.map-side-panel-container {
+    display: flex;
+    position: absolute;
+    z-index: 1010;
+    width: 100%;
+    height: 100%;
+    pointer-events: none;
+}
+
+.map-side-panel-container.opened .map-side-map-blocker {
+    pointer-events: all;
+    cursor: pointer;
+}
+
+.map-side-panel-container.opened .map-side-panel {
+    width: 40%;
+}
+
+.map-side-panel {
+    height: 100%;
+    width: 0px;
+    pointer-events: all;
+    overflow: auto;
+    color: #E5E5E5;
+    background-color: rgba(0,0,0,0.8);
+    transition: width 500ms ease-in-out;
+}
+
+.detail {
+    margin: 1.5em;
+    transition: opacity 300ms;
+}
+
+.map-side-map-blocker {
+    height: 100%;
+    flex-grow: 1;
+    opacity: 0;
+    pointer-events: none;
+    cursor: auto;
+    transition: width 500ms ease-in-out;
+}
+
+.map-side-map-blocker.unblock {
+    pointer-events: none;
+}
+
 /* .map-glasspane {
     opacity: 0;
 } */

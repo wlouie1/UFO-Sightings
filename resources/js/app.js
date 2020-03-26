@@ -176,8 +176,8 @@ MapRenderer.prototype._renderMap = function(container) {
     let map = L.map(container.querySelector('.map'), {
         preferCanvas: true,
         zoomControl: false,
-        maxBounds: [[-90,-180], [90, 180]],
-        maxBoundsViscosity: 1.0,
+        // maxBounds: [[-90,-180], [90, 180]],
+        // maxBoundsViscosity: 1.0,
         zoomSnap: 0.1,
         attributionControl: false
     }).on('load', whenReadyResolve);
@@ -193,9 +193,9 @@ MapRenderer.prototype._renderMap = function(container) {
                     ' contributors &copy; ' +
                     '<a href="https://carto.com/attributions">CARTO</a>',
         subdomains: 'abcd',
-        maxZoom: 19,
-        noWrap: true,
-        bounds: [[-90,-180], [90,180]]
+        maxZoom: 19
+        // noWrap: true,
+        // bounds: [[-90,-180], [90,180]]
     };
 
     let CartoDB_DarkMatterNoLabels = L.tileLayer(urlTemplate, options);
@@ -214,6 +214,35 @@ MapRenderer.prototype._renderMap = function(container) {
     this._reportsLayer = L.layerGroup().addTo(map);
     this._markersData = [];
     this._emptyQuadTree();
+
+    let sideMapBlocker = container.querySelector('.map-side-map-blocker');
+    sideMapBlocker.addEventListener('click', function() {
+        self._deSelectRadiusMarkers();
+    });
+
+    let sidePanel = container.querySelector('.map-side-panel');
+    sidePanel.addEventListener('transitionend', function() {
+        let sidePanelContainer = container.querySelector('.map-side-panel-container');
+        let sidePanelDetail = container.querySelector('.detail');
+        if (sidePanelContainer.classList.contains('opened')) {
+            sidePanelDetail.classList.remove('invisible');
+            sidePanelDetail.classList.add('visible');
+        } else {
+            sidePanelDetail.classList.add('invisible');
+            sidePanelDetail.classList.remove('visible');
+        }
+    });
+    
+
+
+    // let sidePanel = document.querySelector('.map-side-panel');
+    // console.log(sidePanel);
+    // sidePanel.addEventListener('click', function(event) {
+    //     console.log(event);
+    //     event.stopPropagation();
+    // });
+    // L.DomEvent.disableScrollPropagation(sidePanel);
+    // L.DomEvent.disableClickPropagation(sidePanel);
     // this._markersQuadTree = d3.quadtree()
     //     .x(function(d) { return d.report.latitude; })
     //     .y(function(d) { return d.report.longitude; });
@@ -335,49 +364,52 @@ MapRenderer.prototype._renderSelectionOverlay = function(container) {
         .attr('width', containerWidth)
         .attr('height', containerHeight);
 
-    let selectionRadius = this._svg.append('ellipse')
+    this._selectionCircle = this._svg.append('ellipse')
         .attr('class', 'map-selection-radius');
 
     // let radiusTooltip = selectionG.append('g');
     // radiusTooltip.append('rect')
     //     .attr('')
 
-    self._map.on('mouseover', function() {
-        selectionRadius.classed('invisible', !self._selectionEnabled);
-        selectionRadius.classed('visible', self._selectionEnabled);
+    let renderFocusFeedback = function(event) {
         if (!self._selectionEnabled) {
+            self._selectionCircle.classed('visible', false);
+            self._selectionCircle.classed('invisible', true);
             self._hideTooltip();
-        }
-    });
-
-    self._map.on('mousemove', function(event) {
-        if (!self._selectionEnabled) {
-            selectionRadius.classed('visible', false);
-            selectionRadius.classed('invisible', true);
             return;
         }
 
-        selectionRadius.classed('visible', true);
-        selectionRadius.classed('invisible', false);
+        self._selectionCircle.classed('visible', true);
+        self._selectionCircle.classed('invisible', false);
 
         let pos = event.containerPoint;
         let xPos = event.containerPoint.x;
         let yPos = event.containerPoint.y;
 
-        selectionRadius.attr('cx', xPos)
+        self._selectionCircle.attr('cx', xPos)
             .attr('cy', yPos)
             .attr('rx', self._selectionRadius)
             .attr('ry', self._selectionRadius);
 
         self._focusRadiusMarkers(pos);
+    };
 
+    self._map.on('mouseover', renderFocusFeedback);
+
+    self._map.on('mousemove', function(event) {
+        renderFocusFeedback(event);
         self._renderTooltip();
     });
 
     self._map.on('mouseout', function() {
-        selectionRadius.classed('visible', false);
-        selectionRadius.classed('invisible', true);
+        self._selectionCircle.classed('visible', false);
+        self._selectionCircle.classed('invisible', true);
         self._hideTooltip();
+    
+        if (self._selectedMarkers.length > 0) {
+            return;
+        }
+        self._deFocusRadiusMarkers();
     });
 
     self._map.on('click', function(event) {
@@ -390,12 +422,19 @@ MapRenderer.prototype._renderSelectionOverlay = function(container) {
             self._focusRadiusMarkers(pos);
         }
         
-        if (self._focusedMarkers.length == 0) {
-            self._deSelectRadiusMarkers();
-        } else {
+        if (self._focusedMarkers.length > 0) {
             self._selectRadiusMarkers();
-            console.log(self._selectedMarkers.length)
         }
+        
+        // if (self._focusedMarkers.length == 0) {
+        //     self._deSelectRadiusMarkers();
+        //     // document.querySelector('.map-side-panel').style.width = '0px';
+        // } else {
+        //     self._selectRadiusMarkers();
+        //     // document.querySelector('.map-side-panel').style.width = '30%';
+
+        //     // console.log(self._selectedMarkers.length)
+        // }
     });
 
     return Promise.resolve();
@@ -419,9 +458,8 @@ MapRenderer.prototype._focusRadiusMarkers = function(centerPos) {
     let self = this;
 
     // Reset previously focused markers
-    this._focusedMarkers.forEach(function(markerReport) {
-        markerReport.marker.setStyle({ fillColor: '#d7ba7d' });
-    });
+    this._deFocusRadiusMarkers();
+    this._selectedMarkers = [];
 
     this._focusedMarkersCenter = centerPos;
     this._focusedMarkers = [];
@@ -463,20 +501,39 @@ MapRenderer.prototype._focusRadiusMarkers = function(centerPos) {
     });
 };
 
+MapRenderer.prototype._deFocusRadiusMarkers = function() {
+    this._focusedMarkers.forEach(function(markerReport) {
+        markerReport.marker.setStyle({ fillColor: '#d7ba7d' });
+    });
+};
+
 MapRenderer.prototype._selectRadiusMarkers = function() {
+    let self = this;
     this._selectedMarkers = this._focusedMarkers;
 
     this._selectedMarkers.forEach(function(markerReport) {
         // turn them green
+
+        // markerReport.marker.setStyle({ fillColor: 'green' });
+        // self._renderTooltip();
 
         // bring up side panel + pan map
 
         // add marker with ufo shape?
 
     });
+
+    // Update side panel
+    this._updateSidePanel();
+
+    // Open side panel
+    this._openSidePanel();
 };
 
 MapRenderer.prototype._deSelectRadiusMarkers = function() {
+    // Close side panel
+    this._closeSidePanel();
+
     this._selectedMarkers.forEach(function(markerReport) {
         // close side panel + pan map
 
@@ -485,6 +542,10 @@ MapRenderer.prototype._deSelectRadiusMarkers = function() {
     });
 
     this._selectedMarkers = [];
+    this._selectionCircle.classed('visible', false);
+    this._selectionCircle.classed('invisible', true);
+    this._deFocusRadiusMarkers();
+    this._hideTooltip();
 };
 
 MapRenderer.prototype.enableSelection = function() {
@@ -493,6 +554,38 @@ MapRenderer.prototype.enableSelection = function() {
 
 MapRenderer.prototype.disableSelection = function() {
     this._selectionEnabled = false;
+};
+
+MapRenderer.prototype._openSidePanel = function() {
+    let sidePanel = this._container.querySelector('.map-side-panel-container');
+    sidePanel.classList.add('opened');
+    this._prevCenter = this._map.getCenter();
+    this._map.panTo(this._map.containerPointToLatLng(this._focusedMarkersCenter), {
+        animate: true,
+        duration: 0.5
+    });
+};
+
+MapRenderer.prototype._closeSidePanel = function() {
+    let sidePanel = this._container.querySelector('.map-side-panel-container');
+    sidePanel.classList.remove('opened');
+
+    let sidePanelDetail = this._container.querySelector('.detail');
+    sidePanelDetail.classList.remove('visible');
+    sidePanelDetail.classList.add('invisible');
+
+    this._map.panTo(this._prevCenter, {
+        animate: true,
+        duration: 0.5
+    });
+};
+
+MapRenderer.prototype._updateSidePanel = function() {
+    let sidePanelDetail = this._container.querySelector('.detail');
+    // selectionDetail.innerHTML = JSON.stringify(this._selectedMarkers.map(function(markerReport) {
+    //     return markerReport.report;
+    // }));
+    sidePanelDetail.innerHTML = 'Facilisis primis ornare volutpat a neque morbi blandit iaculis eu pharetra porta. Dictum, nunc lacus dis. Taciti velit malesuada a posuere class pharetra mi! Congue lorem rutrum odio vel ullamcorper netus purus pulvinar ad vitae blandit? Magna auctor dui auctor dictum a imperdiet nam eget. Ligula sit laoreet sociis faucibus neque. Arcu eu laoreet turpis nunc fringilla sit orci hac. Nostra tortor quis, potenti etiam pretium. Ad aliquet vehicula viverra platea praesent a euismod quis leo? Vitae egestas risus venenatis, quisque.Facilisis primis ornare volutpat a neque morbi blandit iaculis eu pharetra porta. Dictum, nunc lacus dis. Taciti velit malesuada a posuere class pharetra mi! Congue lorem rutrum odio vel ullamcorper netus purus pulvinar ad vitae blandit? Magna auctor dui auctor dictum a imperdiet nam eget. Ligula sit laoreet sociis faucibus neque. Arcu eu laoreet turpis nunc fringilla sit orci hac. Nostra tortor quis, potenti etiam pretium. Ad aliquet vehicula viverra platea praesent a euismod quis leo? Vitae egestas risus venenatis, quisque.Facilisis primis ornare volutpat a neque morbi blandit iaculis eu pharetra porta. Dictum, nunc lacus dis. Taciti velit malesuada a posuere class pharetra mi! Congue lorem rutrum odio vel ullamcorper netus purus pulvinar ad vitae blandit? Magna auctor dui auctor dictum a imperdiet nam eget. Ligula sit laoreet sociis faucibus neque. Arcu eu laoreet turpis nunc fringilla sit orci hac. Nostra tortor quis, potenti etiam pretium. Ad aliquet vehicula viverra platea praesent a euismod quis leo? Vitae egestas risus venenatis, quisque.Facilisis primis ornare volutpat a neque morbi blandit iaculis eu pharetra porta. Dictum, nunc lacus dis. Taciti velit malesuada a posuere class pharetra mi! Congue lorem rutrum odio vel ullamcorper netus purus pulvinar ad vitae blandit? Magna auctor dui auctor dictum a imperdiet nam eget. Ligula sit laoreet sociis faucibus neque. Arcu eu laoreet turpis nunc fringilla sit orci hac. Nostra tortor quis, potenti etiam pretium. Ad aliquet vehicula viverra platea praesent a euismod quis leo? Vitae egestas risus venenatis, quisque.Facilisis primis ornare volutpat a neque morbi blandit iaculis eu pharetra porta. Dictum, nunc lacus dis. Taciti velit malesuada a posuere class pharetra mi! Congue lorem rutrum odio vel ullamcorper netus purus pulvinar ad vitae blandit? Magna auctor dui auctor dictum a imperdiet nam eget. Ligula sit laoreet sociis faucibus neque. Arcu eu laoreet turpis nunc fringilla sit orci hac. Nostra tortor quis, potenti etiam pretium. Ad aliquet vehicula viverra platea praesent a euismod quis leo? Vitae egestas risus venenatis, quisque.'
 };
 
 MapRenderer.prototype.handleCurrentDateChange = function(event) {
