@@ -5,6 +5,14 @@ html,body{
     overflow: hidden;
 }
 
+hr {
+    /* inspired by https://css-tricks.com/examples/hrs/ */
+    border: 0;
+    height: 1px;
+    width: 100%;
+    background-image: linear-gradient(to right, rgba(255, 255, 255, 0), rgba(255, 255, 255, 0.75), rgba(255, 255, 255, 0));
+}
+
 .hidden {
     display: none;
 }
@@ -179,15 +187,10 @@ html,body{
     height: 100%;
     width: 0px;
     pointer-events: all;
-    overflow: auto;
+    /* overflow: auto; */
     color: #E5E5E5;
     background-color: rgba(0,0,0,0.8);
     transition: width 500ms ease-in-out;
-}
-
-.detail {
-    margin: 1.5em;
-    transition: opacity 300ms;
 }
 
 .map-side-map-blocker {
@@ -212,6 +215,81 @@ html,body{
     stroke: #FFFFFF;
     stroke-width: 4px;
     stroke-dasharray: 4 2;
+}
+
+.detail {
+    height: 100%;
+    /* margin: 1.5em; */
+    transition: opacity 300ms;
+}
+
+.detail-margins {
+    display: flex;
+    flex-direction: column;
+    height: 100%;
+    padding: 0px 1.5em 1.5em 1.5em;
+    box-sizing: border-box;
+}
+
+.detail-meta-container {
+    display: flex;
+    margin-top: 1.5em;
+    margin-bottom: 1.5em;
+}
+
+.detail-meta {
+    flex-grow: 1;
+    font-size: 1.4em;
+    font-weight: bold;
+    line-height: 1.6;
+}
+
+.detail-location {
+    font-size: 1.6em;
+}
+
+.detail-description {
+    /* width: 100%; */
+    flex: 1 1 auto;
+    overflow: auto;
+    min-height: 0px;
+    margin-top: 1.5em;
+    margin-bottom: 1.5em;
+    background-color: rgba(0,0,0,0.8);
+    line-height: 1.5;
+    /* background-color: gray; */
+}
+
+.detail-controls {
+    display: flex;
+    justify-content: flex-end;
+    align-items: center;
+}
+
+.detail-control-btn {
+    background-color: #696969;
+    border: none;
+    color: white;
+    padding-left: 0.5em;
+    padding-right: 0.5em;
+    margin-left: 0.5em;
+    margin-right: 0.5em;
+    font-size: 2em;
+    cursor: pointer;
+}
+
+.detail-control-btn:hover {
+    /* background-color: #b5cea8; */
+    opacity: 0.6;
+}
+
+.detail-control-btn:focus {
+    /* TODO: keyboard accessibility... */
+    outline: none;
+}
+
+.detail-control-btn:disabled {
+    visibility: hidden;
 }
 
 /* .controls-container {

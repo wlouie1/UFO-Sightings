@@ -271,6 +271,11 @@ MapRenderer.prototype._rebuildQuadTree = function() {
 };
 
 MapRenderer.prototype._renderTooltip = function() {
+    if (!this._selectionEnabled) {
+        this._hideTooltip();
+        return;
+    }
+
     let containerWidth = this._container.clientWidth;
 
     let radiusTooltip = this._container.querySelector('.radius-tooltip');
@@ -511,20 +516,33 @@ MapRenderer.prototype._selectRadiusMarkers = function() {
     let self = this;
     this._selectedMarkers = this._focusedMarkers;
 
-    this._selectedMarkers.forEach(function(markerReport) {
-        // turn them green
+    // this._selectedMarkers.forEach(function(markerReport) {
+    //     // turn them green
 
-        // markerReport.marker.setStyle({ fillColor: 'green' });
-        // self._renderTooltip();
+    //     // markerReport.marker.setStyle({ fillColor: 'green' });
+    //     // self._renderTooltip();
 
-        // bring up side panel + pan map
+    //     // bring up side panel + pan map
 
-        // add marker with ufo shape?
+    //     // add marker with ufo shape?
 
+    // });
+
+    let selectionChangeEvent = new CustomEvent('selectionChange', {
+        bubbles: true,
+        detail: {
+            value: self._selectedMarkers.map(function(markerReport) {
+                return markerReport.report;
+            }).sort(function(a, b) {
+                return b.datetime - a.datetime;
+            })
+        }
     });
 
+    this._container.dispatchEvent(selectionChangeEvent);
+
     // Update side panel
-    this._updateSidePanel();
+    // this._updateSidePanel();
 
     // Open side panel
     this._openSidePanel();
@@ -554,6 +572,7 @@ MapRenderer.prototype.enableSelection = function() {
 
 MapRenderer.prototype.disableSelection = function() {
     this._selectionEnabled = false;
+    this._deSelectRadiusMarkers();
 };
 
 MapRenderer.prototype._openSidePanel = function() {
@@ -580,13 +599,16 @@ MapRenderer.prototype._closeSidePanel = function() {
     });
 };
 
-MapRenderer.prototype._updateSidePanel = function() {
-    let sidePanelDetail = this._container.querySelector('.detail');
-    // selectionDetail.innerHTML = JSON.stringify(this._selectedMarkers.map(function(markerReport) {
-    //     return markerReport.report;
-    // }));
-    sidePanelDetail.innerHTML = 'Facilisis primis ornare volutpat a neque morbi blandit iaculis eu pharetra porta. Dictum, nunc lacus dis. Taciti velit malesuada a posuere class pharetra mi! Congue lorem rutrum odio vel ullamcorper netus purus pulvinar ad vitae blandit? Magna auctor dui auctor dictum a imperdiet nam eget. Ligula sit laoreet sociis faucibus neque. Arcu eu laoreet turpis nunc fringilla sit orci hac. Nostra tortor quis, potenti etiam pretium. Ad aliquet vehicula viverra platea praesent a euismod quis leo? Vitae egestas risus venenatis, quisque.Facilisis primis ornare volutpat a neque morbi blandit iaculis eu pharetra porta. Dictum, nunc lacus dis. Taciti velit malesuada a posuere class pharetra mi! Congue lorem rutrum odio vel ullamcorper netus purus pulvinar ad vitae blandit? Magna auctor dui auctor dictum a imperdiet nam eget. Ligula sit laoreet sociis faucibus neque. Arcu eu laoreet turpis nunc fringilla sit orci hac. Nostra tortor quis, potenti etiam pretium. Ad aliquet vehicula viverra platea praesent a euismod quis leo? Vitae egestas risus venenatis, quisque.Facilisis primis ornare volutpat a neque morbi blandit iaculis eu pharetra porta. Dictum, nunc lacus dis. Taciti velit malesuada a posuere class pharetra mi! Congue lorem rutrum odio vel ullamcorper netus purus pulvinar ad vitae blandit? Magna auctor dui auctor dictum a imperdiet nam eget. Ligula sit laoreet sociis faucibus neque. Arcu eu laoreet turpis nunc fringilla sit orci hac. Nostra tortor quis, potenti etiam pretium. Ad aliquet vehicula viverra platea praesent a euismod quis leo? Vitae egestas risus venenatis, quisque.Facilisis primis ornare volutpat a neque morbi blandit iaculis eu pharetra porta. Dictum, nunc lacus dis. Taciti velit malesuada a posuere class pharetra mi! Congue lorem rutrum odio vel ullamcorper netus purus pulvinar ad vitae blandit? Magna auctor dui auctor dictum a imperdiet nam eget. Ligula sit laoreet sociis faucibus neque. Arcu eu laoreet turpis nunc fringilla sit orci hac. Nostra tortor quis, potenti etiam pretium. Ad aliquet vehicula viverra platea praesent a euismod quis leo? Vitae egestas risus venenatis, quisque.Facilisis primis ornare volutpat a neque morbi blandit iaculis eu pharetra porta. Dictum, nunc lacus dis. Taciti velit malesuada a posuere class pharetra mi! Congue lorem rutrum odio vel ullamcorper netus purus pulvinar ad vitae blandit? Magna auctor dui auctor dictum a imperdiet nam eget. Ligula sit laoreet sociis faucibus neque. Arcu eu laoreet turpis nunc fringilla sit orci hac. Nostra tortor quis, potenti etiam pretium. Ad aliquet vehicula viverra platea praesent a euismod quis leo? Vitae egestas risus venenatis, quisque.'
-};
+// MapRenderer.prototype._updateSidePanel = function() {
+//     let sidePanelDetail = this._container.querySelector('.detail');
+//     // selectionDetail.innerHTML = JSON.stringify(this._selectedMarkers.map(function(markerReport) {
+//     //     return markerReport.report;
+//     // }));
+//     console.log(this._selectedMarkers.map(function (markerReport) {
+//         return markerReport.report;
+//     }));
+//     // sidePanelDetail.innerHTML = 'Facilisis primis ornare volutpat a neque morbi blandit iaculis eu pharetra porta. Dictum, nunc lacus dis. Taciti velit malesuada a posuere class pharetra mi! Congue lorem rutrum odio vel ullamcorper netus purus pulvinar ad vitae blandit? Magna auctor dui auctor dictum a imperdiet nam eget. Ligula sit laoreet sociis faucibus neque. Arcu eu laoreet turpis nunc fringilla sit orci hac. Nostra tortor quis, potenti etiam pretium. Ad aliquet vehicula viverra platea praesent a euismod quis leo? Vitae egestas risus venenatis, quisque.Facilisis primis ornare volutpat a neque morbi blandit iaculis eu pharetra porta. Dictum, nunc lacus dis. Taciti velit malesuada a posuere class pharetra mi! Congue lorem rutrum odio vel ullamcorper netus purus pulvinar ad vitae blandit? Magna auctor dui auctor dictum a imperdiet nam eget. Ligula sit laoreet sociis faucibus neque. Arcu eu laoreet turpis nunc fringilla sit orci hac. Nostra tortor quis, potenti etiam pretium. Ad aliquet vehicula viverra platea praesent a euismod quis leo? Vitae egestas risus venenatis, quisque.Facilisis primis ornare volutpat a neque morbi blandit iaculis eu pharetra porta. Dictum, nunc lacus dis. Taciti velit malesuada a posuere class pharetra mi! Congue lorem rutrum odio vel ullamcorper netus purus pulvinar ad vitae blandit? Magna auctor dui auctor dictum a imperdiet nam eget. Ligula sit laoreet sociis faucibus neque. Arcu eu laoreet turpis nunc fringilla sit orci hac. Nostra tortor quis, potenti etiam pretium. Ad aliquet vehicula viverra platea praesent a euismod quis leo? Vitae egestas risus venenatis, quisque.Facilisis primis ornare volutpat a neque morbi blandit iaculis eu pharetra porta. Dictum, nunc lacus dis. Taciti velit malesuada a posuere class pharetra mi! Congue lorem rutrum odio vel ullamcorper netus purus pulvinar ad vitae blandit? Magna auctor dui auctor dictum a imperdiet nam eget. Ligula sit laoreet sociis faucibus neque. Arcu eu laoreet turpis nunc fringilla sit orci hac. Nostra tortor quis, potenti etiam pretium. Ad aliquet vehicula viverra platea praesent a euismod quis leo? Vitae egestas risus venenatis, quisque.Facilisis primis ornare volutpat a neque morbi blandit iaculis eu pharetra porta. Dictum, nunc lacus dis. Taciti velit malesuada a posuere class pharetra mi! Congue lorem rutrum odio vel ullamcorper netus purus pulvinar ad vitae blandit? Magna auctor dui auctor dictum a imperdiet nam eget. Ligula sit laoreet sociis faucibus neque. Arcu eu laoreet turpis nunc fringilla sit orci hac. Nostra tortor quis, potenti etiam pretium. Ad aliquet vehicula viverra platea praesent a euismod quis leo? Vitae egestas risus venenatis, quisque.'
+// };
 
 MapRenderer.prototype.handleCurrentDateChange = function(event) {
     let self = this;
@@ -619,6 +641,110 @@ MapRenderer.prototype.handleCurrentDateChange = function(event) {
     });
 };
 
+// ==================================================
+
+function ReportPanelRenderer() {
+    this._reports = [];
+    this._currReportInd = 0;
+}
+
+ReportPanelRenderer.prototype.handleMapSelectionChange = function(event) {
+    this._reports = event.detail.value;
+    this.setCurrentReport(0);
+};
+
+ReportPanelRenderer.prototype.render = function(container) {
+    let self = this;
+    let backBtn = container.querySelector('.detail-control-btn-back');
+    let forwardBtn = container.querySelector('.detail-control-btn-forward');
+
+    if (this._container != container) {
+        backBtn.addEventListener('click', function() {
+            self.setCurrentReport(self._currReportInd - 1);
+        });
+        forwardBtn.addEventListener('click', function() {
+            self.setCurrentReport(self._currReportInd + 1);
+        });
+
+        this._container = container;
+        return;
+    }
+
+    if (this._reports.length === 1) {
+        forwardBtn.disabled = true;
+        backBtn.disabled = true;
+    } else {
+        forwardBtn.disabled = false;
+        backBtn.disabled = false;
+
+        if (this._currReportInd === this._reports.length - 1) {
+            forwardBtn.disabled = true;
+        }
+        if (this._currReportInd === 0) {
+            backBtn.disabled = true;
+        }
+    }
+
+    let report = this._reports[this._currReportInd];
+    let location = this._container.querySelector('.detail-location');
+    let date = this._container.querySelector('.detail-date');
+    let duration = this._container.querySelector('.detail-duration');
+    let description = this._container.querySelector('.detail-description');
+    let count = this._container.querySelector('.detail-control-count');
+
+    location.innerHTML = this._formatLocation(report);
+    date.innerHTML = report.datetime.toUTCString();
+    duration.innerHTML = 'Duration: ' + report.duration_described;
+    description.innerHTML = report.description;
+    count.innerHTML = (this._currReportInd + 1) + ' of ' + this._reports.length;
+    
+    return Promise.resolve();
+};
+
+ReportPanelRenderer.prototype._formatLocation = function(report) {
+    let titleCase = function(s) {
+        s = s.toLowerCase();
+        s = s.split(' ');
+        for (let i = 0; i < s.length; i++) {
+            s[i] = s[i].charAt(0).toUpperCase() + s[i].slice(1);
+        }
+        return s.join(' ');
+    };
+
+    let upperCase = function(s) {
+        return s.toUpperCase();
+    }
+
+    let extractLocationParts = function(s, formatFunc) {
+        s = s.split('(');
+        return s.map(function(p) {
+            return formatFunc(p.trim().replace(')', ''));
+        });
+    };
+
+    let parts = extractLocationParts(report.city, titleCase);
+    if (report.state != null && report.state != '') {
+        parts = parts.concat(extractLocationParts(report.state, upperCase));
+    }
+    if (report.country != null) {
+        if (report.country === 'us') {
+            parts.push('US');
+        } else if (report.country != '') {
+            parts = parts.concat(extractLocationParts(report.country, titleCase));
+        }
+    }
+
+    return parts.join(', ');
+};
+
+ReportPanelRenderer.prototype.setCurrentReport = function(i) {
+    if (this._reports.length == 0 || i < 0 || i > this._reports.length - 1) {
+        return;
+    }
+
+    this._currReportInd = i;
+    this.render(this._container);
+};
 
 // ==================================================
 
@@ -881,15 +1007,18 @@ TimelineRenderer.prototype.render = function(container) {
 function VisualizationManager(dataManager) {
     this._dataManager = dataManager;
     this._mapRenderer = new MapRenderer(dataManager);
+    this._reportPanelRenderer = new ReportPanelRenderer();
     this._timelineRenderer = new TimelineRenderer(dataManager);
 }
 
 VisualizationManager.prototype.render = function(container, mapContainer, timelineContainer) {
     let self = this;
     this._container = container;
+    let reportPanelContainer = mapContainer.querySelector('.map-side-panel');
 
     this._renderPromise = Promise.all([
         this._mapRenderer.render(mapContainer),
+        this._reportPanelRenderer.render(reportPanelContainer),
         this._timelineRenderer.render(timelineContainer)
     ]).then(function() {
         self._timelineRenderer.setToEndDate();
@@ -898,6 +1027,8 @@ VisualizationManager.prototype.render = function(container, mapContainer, timeli
     timelineContainer.addEventListener('currentDateChange', this._mapRenderer.handleCurrentDateChange.bind(this._mapRenderer));
     timelineContainer.addEventListener('timelinePlayEvent', this._mapRenderer.disableSelection.bind(this._mapRenderer));
     timelineContainer.addEventListener('timelineStopEvent', this._mapRenderer.enableSelection.bind(this._mapRenderer));
+
+    mapContainer.addEventListener('selectionChange', this._reportPanelRenderer.handleMapSelectionChange.bind(this._reportPanelRenderer));
     // timelineContainer.addEventListener('currentDateChange', function (event) {
     //     let mapDrawUpdate = function () {
     //         self._mapRenderer.handleCurrentDateChange.bind(self._mapRenderer)(event);
