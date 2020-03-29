@@ -223,6 +223,10 @@ hr {
     transition: opacity 300ms;
 }
 
+.detail.invisible {
+    transform: translateX(-10000px);
+}
+
 .detail-margins {
     display: flex;
     flex-direction: column;
