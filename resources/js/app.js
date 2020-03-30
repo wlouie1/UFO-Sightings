@@ -1204,6 +1204,10 @@ TimelineRenderer.prototype.handleCurrentReportChange = function(event) {
 };
 
 TimelineRenderer.prototype._renderSelectionLines = function(reports) {
+    if (reports == null) {
+        return;
+    }
+    
     let self = this;
     let containerHeight = this._container.clientHeight;
 
