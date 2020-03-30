@@ -105,8 +105,45 @@ hr {
     width: 100%;
     height: 100vh;
     /* background-color: blue; */
-    background-color: rgba(0,0,0,0.5);
+    background: radial-gradient(ellipse at bottom, #1b2735 0%, #090a0f 100%);
+    overflow: hidden;
+    /* background-color: rgba(0,0,0,0.5); */
     transition: opacity 300ms;
+}
+
+.loading-indicator {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    flex-direction: column;
+    color: white;
+    font-size: 75px;
+}
+
+.loading-indicator-subheading {
+    font-size: 20px;
+}
+
+/* star images from https://dellsystem.me/posts/night-sky-css */
+.loading-container .large {
+    height: 100%;
+    width: 100%;
+    position: absolute;
+    background: url('../images/stars_large.png');
+}
+
+.loading-container .medium {
+    height: 100%;
+    width: 100%;
+    position: absolute;
+    background: url('../images/stars_medium.png');
+}
+
+.loading-container .small {
+    height: 100%;
+    width: 100%;
+    position: absolute;
+    background: url('../images/stars_small.png');
 }
 
 .overlay {
@@ -427,4 +464,4 @@ hr {
     outline: none;
 }
 
-/* gray: #d4d4d4 */
+/* gray: #d4d4d4 */  

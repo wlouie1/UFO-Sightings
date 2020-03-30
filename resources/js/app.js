@@ -1,9 +1,9 @@
 'use strict';
 // TODO: Use ES6 Classes instead
 
-// const DATA_PATH = 'resources/data/ufo_sightings_final.csv';
+const DATA_PATH = 'resources/data/ufo_sightings_final.csv';
 // const DATA_PATH = 'resources/data/nuforc_reports_cleaned.csv';
-const DATA_PATH = 'resources/data/ufo_sightings_final.csv.gz'
+// const DATA_PATH = 'resources/data/ufo_sightings_final.csv.gz'
 
 // From https://stackoverflow.com/a/52112155 to get user locale
 const getNavigatorLanguage = () => (navigator.languages && navigator.languages.length) ? navigator.languages[0] : navigator.userLanguage || navigator.language || navigator.browserLanguage || 'en';
@@ -214,7 +214,7 @@ DataManager.prototype._groupBy = function(dateComponent) {
 DataManager.prototype.loadAndProcessData = function () {
     let self = this;
 
-    return this._loadCompressedData().then(function() {
+    return this._loadData().then(function() {
         let dayGroup = self._groupBy('day');
         self._dayData = dayGroup.data;
         self._dayMap = dayGroup.map;
