@@ -18,7 +18,13 @@
     <!-- <link rel="stylesheet" href="https://unpkg.com/leaflet.markercluster@1.4.1/dist/MarkerCluster.css" />
 	<link rel="stylesheet" href="https://unpkg.com/leaflet.markercluster@1.4.1/dist/MarkerCluster.Default.css" />
     <script src="https://unpkg.com/leaflet.markercluster@1.4.1/dist/leaflet.markercluster-src.js"></script> -->
-    <script src="resources/js/leaflet-heat.js"></script>
+    <!-- <script src="resources/js/leaflet-heat.js"></script> -->
+    <!-- <link rel="stylesheet" href="http://code.ionicframework.com/ionicons/1.5.2/css/ionicons.min.css"> -->
+    <!-- <link rel="stylesheet" href="resources/css/leaflet_awesome_markersv2/leaflet.awesome-markers.css">
+    <script src="resources/js/leaflet_awesome_markersv2/leaflet.awesome-markers.min.js"></script> -->
+    <link rel="stylesheet" href="resources/libs/Leaflet.ExtraMarkers-master/dist/css/leaflet.extra-markers.min.css">
+    <script src="resources/libs/Leaflet.ExtraMarkers-master/dist/js/leaflet.extra-markers.min.js"></script>
+    <script src="resources/libs/gunzip.min.js"></script>
     <script src="https://d3js.org/d3.v5.min.js"></script>
     <link href="resources/css/app.css" type="text/css" rel="stylesheet">
     <script src="resources/js/app.js"></script>
@@ -39,15 +45,21 @@
                                     <div class="detail-location"></div>
                                     <div class="detail-date"></div>
                                     <div class="detail-duration"></div>
+                                    <div class="detail-shape"></div>
                                 </div>
-                                <div class="detail-shape">SHAPE</div>
+                                <div class="detail-close">
+                                    <button class="detail-close-btn"><i class="fa fa-times"></i></button>
+                                </div>
                             </div>
                             <hr>
                             <div class="detail-description"></div>
-                            <div class="detail-controls">
-                                <button class="detail-control-btn detail-control-btn-back"><i class="fa fa-angle-left"></i></button>
-                                <span class="detail-control-count"></span>
-                                <button class="detail-control-btn detail-control-btn-forward"><i class="fa fa-angle-right"></i></button>
+                            <div class="detail-footer">
+                                <div class="detail-icon-attribution"></div>
+                                <div class="detail-controls">
+                                    <button class="detail-control-btn detail-control-btn-back"><i class="fa fa-angle-left"></i></button>
+                                    <span class="detail-control-count"></span>
+                                    <button class="detail-control-btn detail-control-btn-forward"><i class="fa fa-angle-right"></i></button>
+                                </div>
                             </div>
                         </div>
                     </div>
