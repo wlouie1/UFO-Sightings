@@ -2,7 +2,6 @@
 // TODO: Use ES6 Classes instead
 
 const DATA_PATH = 'resources/data/ufo_sightings_final.csv';
-// const DATA_PATH = 'resources/data/nuforc_reports_cleaned.csv';
 // const DATA_PATH = 'resources/data/ufo_sightings_final.csv.gz'
 
 // From https://stackoverflow.com/a/52112155 to get user locale
@@ -195,7 +194,7 @@ DataManager.prototype._groupBy = function(dateComponent) {
                 d = new Date(year, month, day);
                 break;
         }
-        // let d = new Date(this._data[i].datetime.toDateString());
+
         if (dMap[d] != null) {
             dMap[d].reports.push(this._data[i]);
         } else {
@@ -326,8 +325,6 @@ MapRenderer.prototype._renderMap = function(container) {
     let map = L.map(container.querySelector('.map'), {
         preferCanvas: true,
         zoomControl: false,
-        // maxBounds: [[-90,-180], [90, 180]],
-        // maxBoundsViscosity: 1.0,
         zoomSnap: 0.1,
         attributionControl: false
     }).on('load', whenReadyResolve);
@@ -344,15 +341,12 @@ MapRenderer.prototype._renderMap = function(container) {
                     '<a href="https://carto.com/attributions">CARTO</a>',
         subdomains: 'abcd',
         maxZoom: 19
-        // noWrap: true,
-        // bounds: [[-90,-180], [90,180]]
     };
 
     let CartoDB_DarkMatterNoLabels = L.tileLayer(urlTemplate, options);
     CartoDB_DarkMatterNoLabels.addTo(map);
 
     // map.setView([24, 0], 2.8);
-    // map.setView([0, 0], 2);
     map.fitBounds([
         [-53.108179180323226, -186.865267512287],
         [74.0357352612601, 186.6860530092097]
@@ -362,15 +356,12 @@ MapRenderer.prototype._renderMap = function(container) {
         self._rebuildQuadTree();
         self._focusRadiusMarkers(self._focusedMarkersCenter);
         self._renderTooltip();
-        // console.log(event)
     });
 
     this._map = map;
     this._reportsLayer = L.layerGroup().addTo(map);
     this._markersData = [];
     this._emptyQuadTree();
-
-    // console.log(this._map.getBounds())
 
     let sideMapBlocker = container.querySelector('.map-side-map-blocker');
     sideMapBlocker.addEventListener('click', function() {
@@ -390,23 +381,6 @@ MapRenderer.prototype._renderMap = function(container) {
         }
     });
     
-
-
-    // let sidePanel = document.querySelector('.map-side-panel');
-    // console.log(sidePanel);
-    // sidePanel.addEventListener('click', function(event) {
-    //     console.log(event);
-    //     event.stopPropagation();
-    // });
-    // L.DomEvent.disableScrollPropagation(sidePanel);
-    // L.DomEvent.disableClickPropagation(sidePanel);
-    // this._markersQuadTree = d3.quadtree()
-    //     .x(function(d) { return d.report.latitude; })
-    //     .y(function(d) { return d.report.longitude; });
-    // this._reportsLayer = L.markerClusterGroup().addTo(map);
-    // this._cityLayerMap = {};
-    // this._heatLayer = L.heatLayer([], {radius: 25, blur: 15, gradient: {0: 'yellow', 1: 'red'}}).addTo(map);
-
     return whenReadyPromise;
 };
 
@@ -535,10 +509,6 @@ MapRenderer.prototype._renderSelectionOverlay = function(container) {
     this._selectionCircle = this._svg.append('ellipse')
         .attr('class', 'map-selection-radius');
 
-    // let radiusTooltip = selectionG.append('g');
-    // radiusTooltip.append('rect')
-    //     .attr('')
-
     let renderFocusFeedback = function(event) {
         if (!self._selectionEnabled) {
             self._selectionCircle.classed('visible', false);
@@ -593,16 +563,6 @@ MapRenderer.prototype._renderSelectionOverlay = function(container) {
         if (self._focusedMarkers.length > 0) {
             self._selectRadiusMarkers();
         }
-        
-        // if (self._focusedMarkers.length == 0) {
-        //     self._deSelectRadiusMarkers();
-        //     // document.querySelector('.map-side-panel').style.width = '0px';
-        // } else {
-        //     self._selectRadiusMarkers();
-        //     // document.querySelector('.map-side-panel').style.width = '30%';
-
-        //     // console.log(self._selectedMarkers.length)
-        // }
     });
 
     return Promise.resolve();
@@ -649,18 +609,11 @@ MapRenderer.prototype._focusRadiusMarkers = function(centerPos) {
         }
     
         // Prune quadrant if it doesn't overlap selection ring
-        // let rectLowerPos = self._map.latLngToContainerPoint([lat0, lng0]);
-        // let rectUpperPos = self._map.latLngToContainerPoint([lat1, lng1]);
-        // let x0 = rectLowerPos.x;
-        // let y0 = rectLowerPos.y;
-        // let x1 = rectUpperPos.x;
-        // let y1 = rectUpperPos.y;
         let width = x1 - x0;
         let height = y1 - y0;
         let dx = layerCenterPos.x - Math.max(x0, Math.min(layerCenterPos.x, x0 + width));
         let dy = layerCenterPos.y - Math.max(y0, Math.min(layerCenterPos.y, y0 + height));
         return (dx * dx + dy * dy) >= (self._selectionRadius * self._selectionRadius);
-        // return false;
     });
 
     this._focusedMarkers.forEach(function(markerReport) {
@@ -679,18 +632,6 @@ MapRenderer.prototype._selectRadiusMarkers = function() {
     let self = this;
     this._selectedMarkers = this._focusedMarkers;
 
-    // this._selectedMarkers.forEach(function(markerReport) {
-    //     // turn them green
-
-    //     // markerReport.marker.setStyle({ fillColor: 'green' });
-    //     // self._renderTooltip();
-
-    //     // bring up side panel + pan map
-
-    //     // add marker with ufo shape?
-
-    // });
-
     let selectionChangeEvent = new CustomEvent('selectionChange', {
         bubbles: true,
         detail: {
@@ -703,9 +644,6 @@ MapRenderer.prototype._selectRadiusMarkers = function() {
     });
 
     this._container.dispatchEvent(selectionChangeEvent);
-
-    // Update side panel
-    // this._updateSidePanel();
 
     // Open side panel
     this._openSidePanel();
@@ -729,13 +667,6 @@ MapRenderer.prototype._deSelectRadiusMarkers = function() {
     if (this._currentReportMarker != null) {
         this._map.removeLayer(this._currentReportMarker);
     }
-
-    // this._selectedMarkers.forEach(function(markerReport) {
-    //     // close side panel + pan map
-
-    //     // turn them yellow etc.
-
-    // });
 
     this._selectedMarkers = [];
     this._selectionCircle.classed('visible', false);
@@ -785,17 +716,6 @@ MapRenderer.prototype._closeSidePanel = function() {
         });
     }
 };
-
-// MapRenderer.prototype._updateSidePanel = function() {
-//     let sidePanelDetail = this._container.querySelector('.detail');
-//     // selectionDetail.innerHTML = JSON.stringify(this._selectedMarkers.map(function(markerReport) {
-//     //     return markerReport.report;
-//     // }));
-//     console.log(this._selectedMarkers.map(function (markerReport) {
-//         return markerReport.report;
-//     }));
-//     // sidePanelDetail.innerHTML = 'Facilisis primis ornare volutpat a neque morbi blandit iaculis eu pharetra porta. Dictum, nunc lacus dis. Taciti velit malesuada a posuere class pharetra mi! Congue lorem rutrum odio vel ullamcorper netus purus pulvinar ad vitae blandit? Magna auctor dui auctor dictum a imperdiet nam eget. Ligula sit laoreet sociis faucibus neque. Arcu eu laoreet turpis nunc fringilla sit orci hac. Nostra tortor quis, potenti etiam pretium. Ad aliquet vehicula viverra platea praesent a euismod quis leo? Vitae egestas risus venenatis, quisque.Facilisis primis ornare volutpat a neque morbi blandit iaculis eu pharetra porta. Dictum, nunc lacus dis. Taciti velit malesuada a posuere class pharetra mi! Congue lorem rutrum odio vel ullamcorper netus purus pulvinar ad vitae blandit? Magna auctor dui auctor dictum a imperdiet nam eget. Ligula sit laoreet sociis faucibus neque. Arcu eu laoreet turpis nunc fringilla sit orci hac. Nostra tortor quis, potenti etiam pretium. Ad aliquet vehicula viverra platea praesent a euismod quis leo? Vitae egestas risus venenatis, quisque.Facilisis primis ornare volutpat a neque morbi blandit iaculis eu pharetra porta. Dictum, nunc lacus dis. Taciti velit malesuada a posuere class pharetra mi! Congue lorem rutrum odio vel ullamcorper netus purus pulvinar ad vitae blandit? Magna auctor dui auctor dictum a imperdiet nam eget. Ligula sit laoreet sociis faucibus neque. Arcu eu laoreet turpis nunc fringilla sit orci hac. Nostra tortor quis, potenti etiam pretium. Ad aliquet vehicula viverra platea praesent a euismod quis leo? Vitae egestas risus venenatis, quisque.Facilisis primis ornare volutpat a neque morbi blandit iaculis eu pharetra porta. Dictum, nunc lacus dis. Taciti velit malesuada a posuere class pharetra mi! Congue lorem rutrum odio vel ullamcorper netus purus pulvinar ad vitae blandit? Magna auctor dui auctor dictum a imperdiet nam eget. Ligula sit laoreet sociis faucibus neque. Arcu eu laoreet turpis nunc fringilla sit orci hac. Nostra tortor quis, potenti etiam pretium. Ad aliquet vehicula viverra platea praesent a euismod quis leo? Vitae egestas risus venenatis, quisque.Facilisis primis ornare volutpat a neque morbi blandit iaculis eu pharetra porta. Dictum, nunc lacus dis. Taciti velit malesuada a posuere class pharetra mi! Congue lorem rutrum odio vel ullamcorper netus purus pulvinar ad vitae blandit? Magna auctor dui auctor dictum a imperdiet nam eget. Ligula sit laoreet sociis faucibus neque. Arcu eu laoreet turpis nunc fringilla sit orci hac. Nostra tortor quis, potenti etiam pretium. Ad aliquet vehicula viverra platea praesent a euismod quis leo? Vitae egestas risus venenatis, quisque.'
-// };
 
 MapRenderer.prototype.handleCurrentDateChange = function(event) {
     let self = this;
@@ -953,13 +873,6 @@ ReportPanelRenderer.prototype._formatLocation = function(report) {
     if (report.state_province != null && report.state_province != '') {
         parts = parts.concat(extractLocationParts(report.state_province, upperCase));
     }
-    // if (report.country != null) {
-    //     if (report.country === 'us') {
-    //         parts.push('US');
-    //     } else if (report.country != '') {
-    //         parts = parts.concat(extractLocationParts(report.country, titleCase));
-    //     }
-    // }
 
     return parts.join(', ');
 };
@@ -1094,12 +1007,8 @@ TimelineRenderer.prototype._renderTooltip = function(date) {
     let seekTooltipArrow = this._container.querySelector('.seek-tooltip .tooltip-arrow-bottom');
     let seekTooltipl1 = this._container.querySelector('.seek-tooltip-l1');
     let seekTooltipl2 = this._container.querySelector('.seek-tooltip-l2');
-    // let seekTooltipl3 = this._container.querySelector('.seek-tooltip-l3');
     seekTooltipl1.innerHTML = 'Year: ' + year;
     seekTooltipl2.innerHTML = 'Reports: ' + this._dataManager.getReports(new Date(year, 0), yearMap).length;
-    // seekTooltipl3.innerHTML = 'Since ' + this._startDate.getUTCFullYear() + ': ' + this._dataManager.getReportsInRange(this._startDate, date).length;
-
-    // CUMULATIVE REPORTS?
 
     let tooltipHalfWidth = seekTooltipContent.clientWidth / 2;
     if (xPos < tooltipHalfWidth) {
@@ -1145,7 +1054,6 @@ TimelineRenderer.prototype._renderTimeIndicator = function(date) {
 };
 
 TimelineRenderer.prototype._getSnapToInterval = function(date, direction) {
-    // let dayStartTime = new Date(date.getUTCFullYear() + '-' + date.getUTCMonth() + '-' + date.getUTCDate()).getTime();
     let dayStartTime = new Date(date.toDateString()).getTime();
     if (direction === 'floor' || date.getTime() === dayStartTime) {
         return new Date(dayStartTime);
@@ -1265,7 +1173,6 @@ TimelineRenderer.prototype.play = function() {
 
     this._container.dispatchEvent(timelinePlayEvent);
 
-    // this._playInterval = requestInterval(function() {
     this._playInterval = setInterval(function() {
         let clipped = self.setCurrentDate(new Date(self._currentDate.getTime() + self._timeInterval));
         if (clipped) {
@@ -1279,7 +1186,6 @@ TimelineRenderer.prototype.stop = function() {
     this._controlBtnIcon.classList.add('fa-play');
 
     if (this._playInterval != null) {
-        // clearRequestInterval(this._playInterval);
         clearInterval(this._playInterval);
 
         let timelineStopEvent = new CustomEvent('timelineStopEvent', {
@@ -1342,12 +1248,6 @@ VisualizationManager.prototype.render = function(container, mapContainer, timeli
     reportPanelContainer.addEventListener('currentReportChange', this._timelineRenderer.handleCurrentReportChange.bind(this._timelineRenderer));
     reportPanelContainer.addEventListener('panelClose', this._mapRenderer._deSelectRadiusMarkers.bind(this._mapRenderer));
     reportPanelContainer.addEventListener('panelClose', this._timelineRenderer.handleDeselection.bind(this._timelineRenderer));
-    // timelineContainer.addEventListener('currentDateChange', function (event) {
-    //     let mapDrawUpdate = function () {
-    //         self._mapRenderer.handleCurrentDateChange.bind(self._mapRenderer)(event);
-    //     };
-    //     window.requestAnimationFrame(mapDrawUpdate);
-    // });
 
     return this._renderPromise;
 };
@@ -1396,10 +1296,6 @@ async function render() {
     // Fade out/remove loading screen and fade in visualization
     await loadingRenderer.remove();
     await vizManager.show();
-
-
-    // Start playing the map through time
-    // vizManager.play();
 }
 
 

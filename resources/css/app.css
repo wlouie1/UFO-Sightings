@@ -36,7 +36,6 @@ hr {
     z-index: 2000;
     left: 0px;
     pointer-events: none;
-    /* left: 500px; */
 }
 
 .seek-tooltip {
@@ -52,7 +51,6 @@ hr {
 }
 
 .seek-tooltip .tooltip-content-container {
-    /* background-color: #0c7d9d; */
     background-color: #2c5967;
 }
 
@@ -67,7 +65,6 @@ hr {
 
 .tooltip-arrow-bottom {
     position: relative;
-    /* top: 100%; */
     width: 0;
     height: 0;
     border-left: 8px solid transparent;
@@ -77,7 +74,6 @@ hr {
 
 .tooltip-arrow-top {
     position: relative;
-    /* top: 100%; */
     width: 0;
     height: 0;
     border-left: 8px solid transparent;
@@ -86,7 +82,6 @@ hr {
 }
 
 .seek-tooltip .tooltip-arrow-bottom {
-    /* border-top: 8px solid #0c7d9d; */
     border-top: 8px solid #2c5967;
 }
 
@@ -104,10 +99,8 @@ hr {
     align-items: center;
     width: 100%;
     height: 100vh;
-    /* background-color: blue; */
     background: radial-gradient(ellipse at bottom, #1b2735 0%, #090a0f 100%);
     overflow: hidden;
-    /* background-color: rgba(0,0,0,0.5); */
     transition: opacity 300ms;
 }
 
@@ -170,18 +163,8 @@ hr {
     transition: opacity 300ms;
 }
 
-/* .header {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    flex: 0 0 auto;
-    width: 100%;
-    background-color: #1e1e1e;
-} */
-
 .viz-title-container {
     position: absolute;
-    /* width: 100%; */
     height: 100%;
     pointer-events: none;
     margin: 1em;
@@ -205,13 +188,11 @@ hr {
     font-size: 20px
 }
 
-
 .map-container {
     position: relative;
     flex: 1 1 auto;
     width: 100%;
     height: 100%;
-    /* background-color: #070707; */
 }
 
 .map {
@@ -251,7 +232,6 @@ hr {
     height: 100%;
     width: 0px;
     pointer-events: all;
-    /* overflow: auto; */
     color: #E5E5E5;
     background-color: rgba(0,0,0,0.8);
     transition: width 500ms ease-in-out;
@@ -270,10 +250,6 @@ hr {
     pointer-events: none;
 }
 
-/* .map-glasspane {
-    opacity: 0;
-} */
-
 .map-selection-radius {
     fill-opacity: 0;
     stroke: #FFFFFF;
@@ -283,7 +259,6 @@ hr {
 
 .detail {
     height: 100%;
-    /* margin: 1.5em; */
     transition: opacity 300ms;
 }
 
@@ -300,14 +275,12 @@ hr {
 }
 
 .detail-meta-container {
-    /* display: flex; */
     position: relative;
     margin-top: 1.5em;
     margin-bottom: 1.5em;
 }
 
 .detail-meta {
-    /* flex-grow: 1; */
     font-size: 1.4em;
     font-weight: bold;
     line-height: 1.6;
@@ -331,7 +304,6 @@ hr {
 }
 
 .detail-close-btn:hover {
-    /* background-color: #b5cea8; */
     opacity: 0.6;
 }
 
@@ -345,7 +317,6 @@ hr {
 }
 
 .detail-description {
-    /* width: 100%; */
     flex: 1 1 auto;
     overflow: auto;
     min-height: 0px;
@@ -353,7 +324,6 @@ hr {
     margin-bottom: 1.5em;
     background-color: rgba(0,0,0,0.8);
     line-height: 1.5;
-    /* background-color: gray; */
 }
 
 .detail-footer {
@@ -390,7 +360,6 @@ hr {
 }
 
 .detail-control-btn:hover {
-    /* background-color: #b5cea8; */
     opacity: 0.6;
 }
 
@@ -402,12 +371,6 @@ hr {
 .detail-control-btn:disabled {
     visibility: hidden;
 }
-
-/* .controls-container {
-    flex: 0 0 auto;
-    width: 100%;
-    background-color: #1e1e1e;
-} */
 
 .timeline-container {
     flex: 0 0 auto;
@@ -433,10 +396,8 @@ hr {
 }
 
 .timeline-desc-text {
-    /* fill: #E5E5E5; */
     fill: #03b6ae;
     font-family: Inconsolata;
-    /* opacity: 0.7; */
 }
 
 .timeline-chart-glasspane {
@@ -444,7 +405,6 @@ hr {
 }
 
 .timeline-chart-seekline {
-    /* stroke: #d7ba7d; */
     stroke: #FA8072;
     pointer-events: none;
 }
@@ -482,7 +442,6 @@ hr {
 }
 
 .timeline-control-btn:hover {
-    /* background-color: #b5cea8; */
     opacity: 0.8;
 }
 
@@ -491,8 +450,7 @@ hr {
     outline: none;
 }
 
-/* gray: #d4d4d4 */
-
+/* Partly taken from stock 'view on GitHub' banner */
 #forkme_banner {
     opacity: 0.5;
     pointer-events: all;
