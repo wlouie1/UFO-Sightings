@@ -86,7 +86,7 @@ def process_data(events_path, reports_path, data_path):
 
     print(df.shape)
 
-    df.to_csv('ufo_sightings_final.csv', index=False)
+    df.to_csv('ufo_sightings_enhanced.csv', index=False)
 
 
 if __name__ == '__main__':
@@ -109,5 +109,5 @@ if __name__ == '__main__':
     # Here, we use 'nuforc_reports.csv' to get as many full texts as possible
     # For the remaining ones, use 'nuforc_events.csv' to get the NUFORC web links and scrape the webpage for full text
     # Throw out the rest that we can't resolve (turns out there are only around 56/80K we need to throw out)
-    # Final dataset is 'ufo_sightings_final.csv'
+    # Final dataset is 'ufo_sightings_enhanced.csv'
     process_data(events_path, report_path, data_path)
