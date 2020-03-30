@@ -709,11 +709,21 @@ MapRenderer.prototype._selectRadiusMarkers = function() {
 
     // Open side panel
     this._openSidePanel();
+
+    // Hide title thing
+    let vizTitle = this._container.querySelector('.viz-title-container');
+    vizTitle.classList.remove('visible');
+    vizTitle.classList.add('invisible');
 };
 
 MapRenderer.prototype._deSelectRadiusMarkers = function() {
     // Close side panel
     this._closeSidePanel();
+
+    // Show title thing
+    let vizTitle = this._container.querySelector('.viz-title-container');
+    vizTitle.classList.add('visible');
+    vizTitle.classList.remove('invisible');
 
     // Remove current marker
     if (this._currentReportMarker != null) {
@@ -803,6 +813,11 @@ MapRenderer.prototype.handleCurrentDateChange = function(event) {
 
     this._prevRenderDate = currRenderDate;
 
+    // Update title
+    let vizTitleDate = this._container.querySelector('.viz-title-daterange');
+    vizTitleDate.innerHTML = event.detail.overallStart.getUTCFullYear() + ' - ' + currRenderDate.getUTCFullYear();
+
+    // Update markers
     reports.forEach(function(report) {
         let marker = L.circleMarker([report.latitude, report.longitude], {
             radius: 4,
@@ -1165,6 +1180,7 @@ TimelineRenderer.prototype.setCurrentDate = function(date, forceFireEvent) {
         let currentDateChangeEvent = new CustomEvent('currentDateChange', {
             bubbles: true,
             detail: {
+                overallStart: self._startDate,
                 previousValue: prevDate,
                 value: self._currentDate
             }

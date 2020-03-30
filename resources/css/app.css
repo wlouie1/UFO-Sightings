@@ -179,6 +179,33 @@ hr {
     background-color: #1e1e1e;
 } */
 
+.viz-title-container {
+    position: absolute;
+    /* width: 100%; */
+    height: 100%;
+    pointer-events: none;
+    margin: 1em;
+}
+
+.viz-title {
+    display: flex;
+    align-items: center;
+    flex-direction: column;
+}
+
+.viz-title-main {
+    color: white;
+    font-weight: 900;
+    font-size: 30px
+}
+
+.viz-title-daterange {
+    color: white;
+    font-weight: 900;
+    font-size: 20px
+}
+
+
 .map-container {
     position: relative;
     flex: 1 1 auto;
@@ -466,6 +493,23 @@ hr {
 
 /* gray: #d4d4d4 */
 
+#forkme_banner {
+    opacity: 0.5;
+    pointer-events: all;
+    display: block;
+    padding: 10px 50px 10px 10px;
+    color: #fff;
+    background: url('../images/blacktocat.png') #0090ff no-repeat 95% 50%;
+    font-weight: 700;
+    box-shadow: 0 0 10px rgba(0,0,0,.5);
+    border-bottom-left-radius: 2px;
+    border-bottom-right-radius: 2px;
+    margin: 1em;
+}
+
+#forkme_banner:hover {
+    opacity: 1
+}
 
 /* loading indicator animation from https://loading.io/css/ */
 .lds-ripple {
@@ -500,4 +544,3 @@ hr {
       opacity: 0;
     }
 }
-  
