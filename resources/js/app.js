@@ -98,10 +98,20 @@ const UFO_SHAPE_ICONS = {
 
 // ========== Data Utilities ==========
 
+/**
+ * Data Manager; handles all things data related.
+ * @constructor
+ * @param {string} dataPath The path to the data set.
+ */
 function DataManager(dataPath) {
     this.dataPath = dataPath;
 }
 
+/**
+ * Loads the data from dataPath and sorts the data chronologically.
+ * @returns {Promise} Promise that resolves to the sorted data.
+ * @private
+ */
 DataManager.prototype._loadData = function() {
     let self = this;
 
@@ -132,6 +142,11 @@ DataManager.prototype._loadData = function() {
     });
 };
 
+/**
+ * Loads compressed data (gzip) and sorts the data chronologically.
+ * @returns {Promise} Promise that resolves to the sorted data.
+ * @private
+ */
 DataManager.prototype._loadCompressedData = function() {
     let self = this;
 
@@ -176,6 +191,11 @@ DataManager.prototype._loadCompressedData = function() {
     });
 };
 
+/**
+ * Groups the data by day or year.
+ * @param {string} dateComponent 'day' or 'year
+ * @private
+ */
 DataManager.prototype._groupBy = function(dateComponent) {
     let dMap = {};
     let ds = [];
@@ -210,6 +230,10 @@ DataManager.prototype._groupBy = function(dateComponent) {
     return { data: groupedData, map: dMap };
 };
 
+/**
+ * Loads and process the data for downstream rendering consumption.
+ * @returns {Promise} Promise that resolves when data is ready.
+ */
 DataManager.prototype.loadAndProcessData = function () {
     let self = this;
 
@@ -224,26 +248,52 @@ DataManager.prototype.loadAndProcessData = function () {
     });
 };
 
+/**
+ * Gets the data.
+ * @returns {Array} The data.
+ */
 DataManager.prototype.getData = function() {
     return this._data;
 };
 
+/**
+ * Gets the data grouped by day.
+ * @returns {Array} The data.
+ */
 DataManager.prototype.getDayData = function() {
     return this._dayData;
 };
 
+/**
+ * Gets the map keyed by day and value of data array associated with the day.
+ * @returns {object} The map.
+ */
 DataManager.prototype.getDayMap = function() {
     return this._dayMap;
 };
 
+/**
+ * Gets the data grouped by year.
+ * @returns {Array} The data.
+ */
 DataManager.prototype.getYearData = function() {
     return this._yearData;
 };
 
+/**
+ * Gets the map keyed by year and value of data array associated with the year.
+ * @returns {object} The map.
+ */
 DataManager.prototype.getYearMap = function() {
     return this._yearMap;
 };
 
+/**
+ * Gets an array of reports associated with the given day or year.
+ * @param {number} dateComponent The day or year of interest.
+ * @param {object} dateCompMap dayMap or yearMap.
+ * @returns {Array} The array of reports.
+ */
 DataManager.prototype.getReports = function(dateComponent, dateCompMap) {
     if (dateCompMap[dateComponent] == null) {
         return [];
@@ -251,6 +301,12 @@ DataManager.prototype.getReports = function(dateComponent, dateCompMap) {
     return dateCompMap[dateComponent].reports;
 };
 
+/**
+ * Gets an array of reports within the given start and end dates.
+ * @param {Date} startDate The start date.
+ * @param {Date} endDate The end date.
+ * @return {Array} The array of reports within the range.
+ */
 DataManager.prototype.getReportsInRange = function(startDate, endDate) {
     let startTime = startDate.getTime();
     let endTime = endDate.getTime();
@@ -264,11 +320,21 @@ DataManager.prototype.getReportsInRange = function(startDate, endDate) {
 
 // ========== Render Utilities ==========
 
+/**
+ * Handles the Loading screen rendering.
+ * @constructor
+ * @param {DataManager} dataManager The data manager.
+ */
 function LoadingRenderer(dataManager) {
     this._dataManager = dataManager;
     this._minLoadingTime = 1000; // milliseconds
 }
 
+/**
+ * Renders the loading screen to the given container.
+ * @param {Element} container The container to render into.
+ * @returns {Promise} Promise that resolves when rendering finishes.
+ */
 LoadingRenderer.prototype.render = function(container) {
     let self = this;
     this._container = container;
@@ -282,6 +348,10 @@ LoadingRenderer.prototype.render = function(container) {
     return this._renderPromise;
 };
 
+/**
+ * Removes the loading screen.
+ * @returns {Promise} Promise that resolves after the loading screen is removed (including animation).
+ */
 LoadingRenderer.prototype.remove = function() {
     var whenReadyResolve;
     let whenReadyPromise = new Promise(function(resolve, _) {
@@ -305,6 +375,11 @@ LoadingRenderer.prototype.remove = function() {
 
 // ==================================================
 
+/**
+ * Handles the Map rendering.
+ * @constructor
+ * @param {DataManager} dataManager The data manager.
+ */
 function MapRenderer(dataManager) {
     this._dataManager = dataManager;
     this._selectionEnabled = true;
@@ -314,6 +389,12 @@ function MapRenderer(dataManager) {
     this._selectionRadius = 50;
 }
 
+/**
+ * Renders the map into the given container.
+ * @param {Element} container The container to render into.
+ * @returns {Promise} Promise that resolves after rendering is complete.
+ * @private
+ */
 MapRenderer.prototype._renderMap = function(container) {
     let self = this;
 
@@ -384,6 +465,10 @@ MapRenderer.prototype._renderMap = function(container) {
     return whenReadyPromise;
 };
 
+/**
+ * Empties the quad tree.
+ * @private
+ */
 MapRenderer.prototype._emptyQuadTree = function() {
     let self = this;
 
@@ -392,6 +477,10 @@ MapRenderer.prototype._emptyQuadTree = function() {
         .y(function(d) { return self._map.latLngToLayerPoint([d.report.latitude, d.report.longitude]).y; });
 };
 
+/**
+ * Rebuilds the quad tree of report markers.
+ * @private
+ */
 MapRenderer.prototype._rebuildQuadTree = function() {
     let self = this;
     
@@ -401,12 +490,22 @@ MapRenderer.prototype._rebuildQuadTree = function() {
         .addAll(this._markersData);
 };
 
+/**
+ * Returns a formated date string given the date.
+ * @param {Date} date The date object of interest.
+ * @returns {string} The formated date string.
+ * @private
+ */
 MapRenderer.prototype._toDateString = function(date) {
     let locale = getNavigatorLanguage();
     let options = { year: 'numeric', month: 'short', day: 'numeric', timeZone: 'UTC' }
     return date.toLocaleString(locale, options);
 };
 
+/**
+ * Renders the mouse tooltip.
+ * @private
+ */
 MapRenderer.prototype._renderTooltip = function() {
     if (!this._selectionEnabled) {
         this._hideTooltip();
@@ -478,6 +577,10 @@ MapRenderer.prototype._renderTooltip = function() {
     radiusTooltipArrow.style.left = tooltipArrowLeft;
 };
 
+/**
+ * Hides the mouse tooltip.
+ * @private
+ */
 MapRenderer.prototype._hideTooltip = function() {
     let radiusTooltip = this._container.querySelector('.radius-tooltip');
     if (radiusTooltip.classList.contains('visible')) {
@@ -486,6 +589,12 @@ MapRenderer.prototype._hideTooltip = function() {
     }
 };
 
+/**
+ * Renders the overlay container and mouse circle + tooltip on hover.
+ * @param {Element} container The container to render into.
+ * @returns {Promise} Promise that resolves after render is complete.
+ * @private
+ */
 MapRenderer.prototype._renderSelectionOverlay = function(container) {
     let self = this;
     let containerWidth = container.clientWidth;
@@ -568,6 +677,11 @@ MapRenderer.prototype._renderSelectionOverlay = function(container) {
     return Promise.resolve();
 };
 
+/**
+ * Renders the map component.
+ * @param {Element} container The container to render into.
+ * @returns {Promise} Promise that resolves after rendering is complete.
+ */
 MapRenderer.prototype.render = function(container) {
     let self =  this;
 
@@ -582,6 +696,11 @@ MapRenderer.prototype.render = function(container) {
     ]);
 };
 
+/**
+ * Given the position of the circle center, focus the markers within the circle.
+ * @param {Array} centerPos Array of x and y representing the center position.
+ * @private
+ */
 MapRenderer.prototype._focusRadiusMarkers = function(centerPos) {
     let self = this;
 
@@ -622,12 +741,20 @@ MapRenderer.prototype._focusRadiusMarkers = function(centerPos) {
     });
 };
 
+/**
+ * De-focuses the previously focused markers.
+ * @private
+ */
 MapRenderer.prototype._deFocusRadiusMarkers = function() {
     this._focusedMarkers.forEach(function(markerReport) {
         markerReport.marker.setStyle({ fillColor: '#d7ba7d' });
     });
 };
 
+/**
+ * Selects the current focused set of markers.
+ * @private
+ */
 MapRenderer.prototype._selectRadiusMarkers = function() {
     let self = this;
     this._selectedMarkers = this._focusedMarkers;
@@ -654,6 +781,10 @@ MapRenderer.prototype._selectRadiusMarkers = function() {
     vizTitle.classList.add('invisible');
 };
 
+/**
+ * De-selects the currently selected set of markers.
+ * @private
+ */
 MapRenderer.prototype._deSelectRadiusMarkers = function() {
     // Close side panel
     this._closeSidePanel();
@@ -682,15 +813,25 @@ MapRenderer.prototype._deSelectRadiusMarkers = function() {
     this._container.dispatchEvent(deselectionEvent);
 };
 
+/**
+ * Enables selection.
+ */
 MapRenderer.prototype.enableSelection = function() {
     this._selectionEnabled = true;
 };
 
+/**
+ * Disables selection.
+ */
 MapRenderer.prototype.disableSelection = function() {
     this._selectionEnabled = false;
     this._deSelectRadiusMarkers();
 };
 
+/**
+ * Opens the reports panel and pans the map.
+ * @private
+ */
 MapRenderer.prototype._openSidePanel = function() {
     let sidePanel = this._container.querySelector('.map-side-panel-container');
     sidePanel.classList.add('opened');
@@ -701,6 +842,10 @@ MapRenderer.prototype._openSidePanel = function() {
     });
 };
 
+/**
+ * Closes the reports panel and restores the map view.
+ * @private
+ */
 MapRenderer.prototype._closeSidePanel = function() {
     let sidePanel = this._container.querySelector('.map-side-panel-container');
     sidePanel.classList.remove('opened');
@@ -717,6 +862,10 @@ MapRenderer.prototype._closeSidePanel = function() {
     }
 };
 
+/**
+ * Handler for the 'currentDateChange' event.
+ * @param {Event} event The currentDateChange event.
+ */
 MapRenderer.prototype.handleCurrentDateChange = function(event) {
     let self = this;
 
@@ -753,6 +902,10 @@ MapRenderer.prototype.handleCurrentDateChange = function(event) {
     });
 };
 
+/**
+ * Handler for  the currentReportChange event.
+ * @param {Event} event The currentReportChange event.
+ */
 MapRenderer.prototype.handleCurrentReportChange = function(event) {
     let report = event.detail.value;
 
@@ -777,16 +930,29 @@ MapRenderer.prototype.handleCurrentReportChange = function(event) {
 
 // ==================================================
 
+/**
+ * Handles the Reports panel rendering.
+ * @constructor
+ */
 function ReportPanelRenderer() {
     this._reports = [];
     this._currReportInd = 0;
 }
 
+/**
+ * Handler for the selectionChange event.
+ * @param {Event} event The selectionChange event.
+ */
 ReportPanelRenderer.prototype.handleMapSelectionChange = function(event) {
     this._reports = event.detail.value;
     this.setCurrentReport(0);
 };
 
+/**
+ * Renders the reports panel into the given container.
+ * @param {Element} container The container to render into.
+ * @returns {Promise} Promise that resolves after rendering is complete.
+ */
 ReportPanelRenderer.prototype.render = function(container) {
     let self = this;
     let backBtn = container.querySelector('.detail-control-btn-back');
@@ -848,6 +1014,12 @@ ReportPanelRenderer.prototype.render = function(container) {
     return Promise.resolve();
 };
 
+/**
+ * Given a report object, return the formatted location string.
+ * @param {object} report The report data object.
+ * @returns {string} The formatted location string.
+ * @private
+ */
 ReportPanelRenderer.prototype._formatLocation = function(report) {
     let titleCase = function(s) {
         s = s.toLowerCase();
@@ -877,6 +1049,10 @@ ReportPanelRenderer.prototype._formatLocation = function(report) {
     return parts.join(', ');
 };
 
+/**
+ * Sets the current report and fires a 'currentReportChange' event.
+ * @param {number} i The current report index in the data array.
+ */
 ReportPanelRenderer.prototype.setCurrentReport = function(i) {
     if (this._reports.length == 0 || i < 0 || i > this._reports.length - 1) {
         return;
@@ -899,6 +1075,11 @@ ReportPanelRenderer.prototype.setCurrentReport = function(i) {
 
 // ==================================================
 
+/**
+ * Handles the Timeline rendering.
+ * @constructor
+ * @param {DataManager} dataManager The data manager.
+ */
 function TimelineRenderer(dataManager) {
     this._dataManager = dataManager;
     this._intervalsPerSecond = 24;
@@ -910,6 +1091,11 @@ function TimelineRenderer(dataManager) {
     this._currentDate = this._startDate;
 }
 
+/**
+ * Renders the timeline component.
+ * @param {Element} container The container to render into.
+ * @private
+ */
 TimelineRenderer.prototype._renderChart = function(container) {
     if (this._container == container) {
         this._svg.remove();
@@ -975,6 +1161,10 @@ TimelineRenderer.prototype._renderChart = function(container) {
     this._selectionIndicatorsG = this._svg.append('g');
 };
 
+/**
+ * Renders the play/pause button.
+ * @private
+ */
 TimelineRenderer.prototype._renderPlayer = function() {
     let self = this;
 
@@ -990,6 +1180,11 @@ TimelineRenderer.prototype._renderPlayer = function() {
     });
 };
 
+/**
+ * Renders the date indicator tooltip.
+ * @param {Date} date The current date.
+ * @private
+ */
 TimelineRenderer.prototype._renderTooltip = function(date) {
     let xPos = this._xScale(date);
 
@@ -1021,6 +1216,11 @@ TimelineRenderer.prototype._renderTooltip = function(date) {
     seekTooltipArrow.style.left = (xPos - 8) + 'px';
 };
 
+/**
+ * Renders the time indicator feedback.
+ * @param {Date} date The date.
+ * @private
+ */
 TimelineRenderer.prototype._renderTimeIndicator = function(date) {
     if (!this._rangeSeekIndicator) {
         let containerHeight = this._container.clientHeight;
@@ -1053,6 +1253,13 @@ TimelineRenderer.prototype._renderTimeIndicator = function(date) {
     this._renderTooltip(date);
 };
 
+/**
+ * Returns the closest beginning (floor) or end of day (ceil) datetime relative to given date.
+ * @param {Date} date The date of interest
+ * @param {string} direction 'floor' or 'ceil'
+ * @returns {Date} The floor or ceil of the given date.
+ * @private
+ */
 TimelineRenderer.prototype._getSnapToInterval = function(date, direction) {
     let dayStartTime = new Date(date.toDateString()).getTime();
     if (direction === 'floor' || date.getTime() === dayStartTime) {
@@ -1061,6 +1268,12 @@ TimelineRenderer.prototype._getSnapToInterval = function(date, direction) {
     return new Date(dayStartTime + this._timeInterval);
 }
 
+/**
+ * Sets the current date and fires a 'currentDateChange' event.
+ * @param {Date} date The current date.
+ * @param {boolean} forceFireEvent Whether to force an event fire.
+ * @return {boolean} Whether the current date was clipped to fit within the timeline bounds.
+ */
 TimelineRenderer.prototype.setCurrentDate = function(date, forceFireEvent) {
     let self = this;
     let prevDate = this._currentDate;
@@ -1100,21 +1313,36 @@ TimelineRenderer.prototype.setCurrentDate = function(date, forceFireEvent) {
     return clipped;
 };
 
+/**
+ * Sets the current date to the end of the timeline.
+ */
 TimelineRenderer.prototype.setToEndDate = function() {
     this.setCurrentDate(this._endDate, true);
 };
 
+/**
+ * Handler for the selectionChange event.
+ * @param {Event} event The selectionChange event.
+ */
 TimelineRenderer.prototype.handleMapSelectionChange = function(event) {
     this._lastSelectedReports = event.detail.value;
     this._renderSelectionLines(this._lastSelectedReports);    
 };
 
+/**
+ * Handler for the 'deselection' and 'panelClose' events.
+ * @param {Event} event The deselection or panelClose events.
+ */
 TimelineRenderer.prototype.handleDeselection = function(event) {
     this._selectionIndicatorsG.selectAll("line").remove();
     this._selectionLines = {};
     this._lastSelectedReports = [];
 };
 
+/**
+ * Handler for the 'currentReportChange' event.
+ * @param {Event} event The currentReportChange event.
+ */
 TimelineRenderer.prototype.handleCurrentReportChange = function(event) {
     if (this._lastSelectedReports == null || this._lastSelectedReports.length == 0) {
         return;
@@ -1127,6 +1355,11 @@ TimelineRenderer.prototype.handleCurrentReportChange = function(event) {
     line.classed('selected', true);
 };
 
+/**
+ * Renders the lines represented the selected reports.
+ * @param {Array} reports The array of selected reports.
+ * @private
+ */
 TimelineRenderer.prototype._renderSelectionLines = function(reports) {
     if (reports == null) {
         return;
@@ -1156,6 +1389,9 @@ TimelineRenderer.prototype._renderSelectionLines = function(reports) {
     }
 };
 
+/**
+ * Plays the timeline and fires a 'timelinePlayEvent' event.
+ */
 TimelineRenderer.prototype.play = function() {
     let self = this;
 
@@ -1181,6 +1417,9 @@ TimelineRenderer.prototype.play = function() {
     }, 1000 / this._intervalsPerSecond);
 };
 
+/**
+ * Stops the timeline play and fires a 'timelineStopEvent' event.
+ */
 TimelineRenderer.prototype.stop = function() {
     this._controlBtnIcon.classList.remove('fa-pause');
     this._controlBtnIcon.classList.add('fa-play');
@@ -1198,6 +1437,11 @@ TimelineRenderer.prototype.stop = function() {
     this._playInterval = null;
 };
 
+/**
+ * Renders the timeline component.
+ * @param {Element} container The container to render into.
+ * @returns {Promise} Promise that resolves after render completes.
+ */
 TimelineRenderer.prototype.render = function(container) {
     let self = this;
 
@@ -1216,6 +1460,10 @@ TimelineRenderer.prototype.render = function(container) {
 
 // ==================================================
 
+/**
+ * Handles the rendering of the entire visualization.
+ * @param {DataManager} dataManager The data manager.
+ */
 function VisualizationManager(dataManager) {
     this._dataManager = dataManager;
     this._mapRenderer = new MapRenderer(dataManager);
@@ -1223,6 +1471,13 @@ function VisualizationManager(dataManager) {
     this._timelineRenderer = new TimelineRenderer(dataManager);
 }
 
+/**
+ * Renders the entire visualization.
+ * @param {Element} container The container to render into.
+ * @param {Element} mapContainer The conatiner to render the map into.
+ * @param {Element} timelineContainer The container to render the timeline into.
+ * @returns {Promise} Promise that resolves after rendering completes.
+ */
 VisualizationManager.prototype.render = function(container, mapContainer, timelineContainer) {
     let self = this;
     this._container = container;
@@ -1252,6 +1507,10 @@ VisualizationManager.prototype.render = function(container, mapContainer, timeli
     return this._renderPromise;
 };
 
+/**
+ * Fades in the visualization.
+ * @returns {Promise} Promise that resolves after the fade in animation completes.
+ */
 VisualizationManager.prototype.show = function() {
     var whenReadyResolve;
     let whenReadyPromise = new Promise(function(resolve, _) {
@@ -1269,12 +1528,18 @@ VisualizationManager.prototype.show = function() {
     });
 };
 
+/**
+ * Plays the visualization forward through time.
+ */
 VisualizationManager.prototype.play = function() {
     this._timelineRenderer.play();
 }
 
 // ==================================================
 
+/**
+ * Main render call that renders the whole application.
+ */
 async function render() {
     let dataManager = new DataManager(DATA_PATH);
     let loadingRenderer = new LoadingRenderer(dataManager);
