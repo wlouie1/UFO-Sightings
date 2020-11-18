@@ -1,7 +1,7 @@
 # A4-UFO-Sightings
 Explore over 80K reports of UFO sightings around the world, collected from 1906 - 2014! The underlying dataset was scraped, geolocated, and time standardized from the National UFO Reporting Center (NUFORC) database, and hosted [here](https://github.com/planetsig/ufo-reports) by Sigmond Axel. I performed further cleaning and web scraping from the [NUFORC database](http://www.nuforc.org/webreports.html) to enhance the final dataset; see [Dataset](#dataset) section, and [process_data.py](resources/data/process_data.py) and [process_data_part2.py](resources/data/process_data_part2.py) for details.
 
-The interactive map is [here](https://github.mit.edu/pages/6894-sp20/A4-UFO-Sightings/). I've only tested it on Desktop Chrome with mouse interaction.
+The interactive map is [here](https://wlouie1.github.io/UFO-Sightings/). I've only tested it on Desktop Chrome with mouse interaction.
 
 ![ufosightings](resources/images/a4ufo_small.gif)
 
